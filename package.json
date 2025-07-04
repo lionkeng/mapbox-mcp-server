@@ -16,7 +16,7 @@
     "format:fix": "prettier --write \"./src/**/*.{ts,tsx,js,json,md}\"",
     "prepare": "husky && node .husky/setup-hooks.js",
     "test": "jest",
-    "remote-dev": "node dist/index.js --http",
+    "dev": "node dist/index.js --http",
     "build": "npm run prepare && npm run build:esm && npm run build:cjs && npm run generate-version && node scripts/add-shebang.cjs",
     "build:esm": "node scripts/build-helpers.cjs esm-package && tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "build:cjs": "node scripts/build-helpers.cjs cjs-package && tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
