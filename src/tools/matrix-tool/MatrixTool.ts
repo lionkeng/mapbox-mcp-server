@@ -82,7 +82,7 @@ const MatrixInputSchema = z.object({
 });
 
 export class MatrixTool extends MapboxApiBasedTool<typeof MatrixInputSchema> {
-  name = 'MatrixTool';
+  name = 'mapbox_matrix';
   description =
     'Calculates travel times and distances between multiple points using Mapbox Matrix API.';
 

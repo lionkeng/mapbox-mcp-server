@@ -299,7 +299,7 @@ export const DirectionsInputSchema = z.object({
 export class DirectionsTool extends MapboxApiBasedTool<
   typeof DirectionsInputSchema
 > {
-  name = 'DirectionsTool';
+  name = 'mapbox_directions';
   description =
     'Fetches directions from Mapbox API based on provided coordinates and direction method.';
 

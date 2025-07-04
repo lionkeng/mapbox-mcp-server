@@ -28,7 +28,9 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
   readonly inputSchema: InputSchema;
   protected server: McpServer | null = null;
 
-  static readonly MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN;
+  static get MAPBOX_ACCESS_TOKEN(): string | undefined {
+    return process.env.MAPBOX_ACCESS_TOKEN;
+  }
   static readonly MAPBOX_API_ENDPOINT =
     process.env.MAPBOX_API_ENDPOINT || 'https://api.mapbox.com/';
 
@@ -58,11 +60,6 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
     try {
       if (!MapboxApiBasedTool.MAPBOX_ACCESS_TOKEN) {
         throw new Error('MAPBOX_ACCESS_TOKEN is not set');
-      }
-
-      // Validate that the token has the correct JWT format
-      if (!this.isValidJwtFormat(MapboxApiBasedTool.MAPBOX_ACCESS_TOKEN)) {
-        throw new Error('MAPBOX_ACCESS_TOKEN is not in valid JWT format');
       }
 
       const input = this.inputSchema.parse(rawInput);
@@ -130,13 +127,28 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
 
   /**
    * Helper method to send logging messages
+   * Gracefully handles HTTP mode where logging is not available
    */
   protected log(
     level: 'debug' | 'info' | 'warning' | 'error',
     data: any
   ): void {
     if (this.server) {
-      this.server.server.sendLoggingMessage({ level, data });
+      try {
+        // Check if the server has a connected transport
+        // In HTTP mode, the transport doesn't support bidirectional communication
+        const hasConnectedTransport =
+          this.server.server &&
+          typeof (this.server.server as any).send === 'function';
+
+        if (hasConnectedTransport) {
+          this.server.server.sendLoggingMessage({ level, data });
+        }
+        // Silently ignore if no connected transport (HTTP mode)
+      } catch {
+        // Silently ignore all logging errors in HTTP mode
+        // This is expected when using HTTP transport instead of WebSocket
+      }
     }
   }
 }

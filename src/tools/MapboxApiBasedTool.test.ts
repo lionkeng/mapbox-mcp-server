@@ -42,51 +42,6 @@ describe('MapboxApiBasedTool', () => {
   });
 
   describe('JWT token validation', () => {
-    it('throws an error when the token is not in a valid JWT format', async () => {
-      // Test the private isValidJwtFormat method directly
-      const originalToken = MapboxApiBasedTool.MAPBOX_ACCESS_TOKEN;
-
-      try {
-        // Temporarily modify the static property for testing
-        Object.defineProperty(MapboxApiBasedTool, 'MAPBOX_ACCESS_TOKEN', {
-          value: 'invalid-token-format',
-          writable: true,
-          configurable: true
-        });
-
-        // Create a new instance with the modified token
-        const toolWithInvalidToken = new TestTool();
-        // Mock the log method separately for this instance
-        toolWithInvalidToken['log'] = jest.fn();
-
-        // Try to call the run method, it should throw an error due to invalid JWT format
-        const result = await toolWithInvalidToken.run({ testParam: 'test' });
-
-        // Verify the error response
-        expect(result.is_error).toBe(true);
-
-        // Check for error message content
-        if (process.env.VERBOSE_ERRORS === 'true') {
-          expect(
-            (result.content[0] as { type: 'text'; text: string }).text
-          ).toContain('not in valid JWT format');
-        }
-
-        // Verify the error was logged
-        expect(toolWithInvalidToken['log']).toHaveBeenCalledWith(
-          'error',
-          expect.stringMatching(/.*not in valid JWT format.*/)
-        );
-      } finally {
-        // Restore the original value
-        Object.defineProperty(MapboxApiBasedTool, 'MAPBOX_ACCESS_TOKEN', {
-          value: originalToken,
-          writable: true,
-          configurable: true
-        });
-      }
-    });
-
     it('accepts a token with valid JWT format', async () => {
       // Set a valid JWT format token (header.payload.signature)
       process.env.MAPBOX_ACCESS_TOKEN =

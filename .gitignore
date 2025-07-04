@@ -1,3 +1,9 @@
+# tmp files
+tmp
+
+# tap
+.tap
+
 # Husky
 
 .husky/pre-commit

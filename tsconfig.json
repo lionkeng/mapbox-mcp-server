@@ -23,7 +23,12 @@
     "paths": {
       "pkce-challenge": [
         "node_modules/pkce-challenge/dist/index.node"
-      ]
+      ],
+      "@/server/*": ["src/server/*"],
+      "@/transport/*": ["src/transport/*"],
+      "@/config/*": ["src/config/*"],
+      "@/utils/*": ["src/utils/*"],
+      "@/types/*": ["src/types/*"]
     },
     "typeRoots": [
       "./types",
