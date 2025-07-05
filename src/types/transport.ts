@@ -72,6 +72,27 @@ export interface ServerStartupResult {
 }
 
 /**
+ * MCP Session information
+ */
+export interface McpSession {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  lastActivity: Date;
+  permissions?: string[];
+}
+
+/**
+ * SSE Connection state
+ */
+export interface SSEConnection {
+  sessionId: string;
+  reply: any; // FastifyReply with SSE support
+  createdAt: Date;
+  lastActivity: Date;
+}
+
+/**
  * Type guard for HTTP transport config
  */
 export function isHttpTransport(

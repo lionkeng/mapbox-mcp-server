@@ -23,14 +23,14 @@ describe('Tool Registry', () => {
 
       // Check that we have the expected Mapbox tools
       const expectedTools = [
-        'mapbox_geocoding_forward',
-        'mapbox_geocoding_reverse',
-        'mapbox_directions',
-        'mapbox_matrix',
-        'mapbox_isochrone',
-        'mapbox_poi_search',
-        'mapbox_category_search',
-        'mapbox_static_map'
+        'MapboxGeocodingForward',
+        'MapboxGeocodingReverse',
+        'MapboxDirections',
+        'MapboxMatrix',
+        'MapboxIsochrone',
+        'MapboxPoiSearch',
+        'MapboxCategorySearch',
+        'MapboxStaticMap'
       ];
 
       expectedTools.forEach((toolName) => {
@@ -57,11 +57,11 @@ describe('Tool Registry', () => {
     it('should return tools with proper structure', () => {
       const tools = toolRegistry.listTools();
       const geocodeTool = tools.find(
-        (t) => t.name === 'mapbox_geocoding_forward'
+        (t) => t.name === 'MapboxGeocodingForward'
       );
 
       expect(geocodeTool).toBeDefined();
-      expect(geocodeTool?.name).toBe('mapbox_geocoding_forward');
+      expect(geocodeTool?.name).toBe('MapboxGeocodingForward');
       expect(geocodeTool?.description).toContain('geocod');
       expect(geocodeTool?.inputSchema).toBeDefined();
       expect(typeof geocodeTool?.inputSchema).toBe('object');
@@ -76,7 +76,7 @@ describe('Tool Registry', () => {
       };
 
       const result = await toolRegistry.executeTool(
-        'mapbox_geocoding_forward',
+        'MapboxGeocodingForward',
         { q: 'San Francisco', limit: 1 },
         user
       );
@@ -105,7 +105,7 @@ describe('Tool Registry', () => {
 
       await expect(
         toolRegistry.executeTool(
-          'mapbox_geocoding_forward', // Requires geocode permission
+          'MapboxGeocodingForward', // Requires geocode permission
           { q: 'San Francisco', limit: 1 },
           user
         )
@@ -119,7 +119,7 @@ describe('Tool Registry', () => {
       };
 
       const result = await toolRegistry.executeTool(
-        'mapbox_geocoding_forward',
+        'MapboxGeocodingForward',
         { q: 'San Francisco', limit: 1 },
         user
       );
@@ -158,23 +158,47 @@ describe('Tool Registry', () => {
 
   describe('Tool Permissions', () => {
     it('should have correct permission mappings', () => {
-      expect(toolRegistry.hasTool('mapbox_geocoding_reverse')).toBe(true);
-      expect(toolRegistry.hasTool('mapbox_geocoding_forward')).toBe(true);
-      expect(toolRegistry.hasTool('mapbox_directions')).toBe(true);
-      expect(toolRegistry.hasTool('mapbox_poi_search')).toBe(true);
-      expect(toolRegistry.hasTool('mapbox_category_search')).toBe(true);
+      expect(toolRegistry.hasTool('MapboxGeocodingReverse')).toBe(true);
+      expect(toolRegistry.hasTool('MapboxGeocodingForward')).toBe(true);
+      expect(toolRegistry.hasTool('MapboxDirections')).toBe(true);
+      expect(toolRegistry.hasTool('MapboxPoiSearch')).toBe(true);
+      expect(toolRegistry.hasTool('MapboxCategorySearch')).toBe(true);
 
       // Test permission mapping
       const tools = toolRegistry.listTools();
-      const geocodeTools = tools.filter((t) => t.name.includes('geocoding'));
-      const directionsTool = tools.find((t) => t.name === 'mapbox_directions');
+      const geocodeTools = tools.filter((t) => t.name.includes('Geocoding'));
+      const directionsTool = tools.find((t) => t.name === 'MapboxDirections');
       const poiTools = tools.filter(
-        (t) => t.name.includes('poi') || t.name.includes('category')
+        (t) => t.name.includes('Poi') || t.name.includes('Category')
       );
 
       expect(geocodeTools.length).toBeGreaterThan(0);
       expect(directionsTool).toBeDefined();
       expect(poiTools.length).toBeGreaterThan(0);
+    });
+
+    it('should have permissions defined for all registered tools', () => {
+      const tools = toolRegistry.listTools();
+
+      // Verify that all tools have permissions defined
+      tools.forEach((tool) => {
+        expect(tool.permissions).toBeDefined();
+        expect(Array.isArray(tool.permissions)).toBe(true);
+        expect(tool.permissions!.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should throw error for undefined tool permissions', () => {
+      // Test accessing the private method through reflection to verify error handling
+      const toolRegistryAny = toolRegistry as any;
+
+      expect(() => {
+        toolRegistryAny.getToolPermissions('nonexistent_tool');
+      }).toThrow(ValidationError);
+
+      expect(() => {
+        toolRegistryAny.getToolPermissions('nonexistent_tool');
+      }).toThrow('No permissions defined for tool: nonexistent_tool');
     });
   });
 });

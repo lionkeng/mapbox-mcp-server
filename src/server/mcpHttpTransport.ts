@@ -8,13 +8,15 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import {
   JSONRPCRequest,
-  JSONRPCResponse
+  JSONRPCResponse,
+  JSONRPCNotification
 } from '@modelcontextprotocol/sdk/types.js';
 import { AuthenticatedRequest, JwtPayload } from './httpServer.js';
 import { toolRegistry, ToolExecutionContext } from './toolRegistry.js';
 import { createLogger, PerformanceLogger } from '@/utils/logger.js';
 import { ValidationError } from '@/utils/errors.js';
 import { z } from 'zod';
+import crypto from 'node:crypto';
 
 /**
  * Request handler function type
@@ -28,7 +30,7 @@ type RequestHandler = (
  * Notification handler function type
  */
 type NotificationHandler = (
-  notification: JSONRPCRequest,
+  notification: JSONRPCNotification,
   context: McpRequestContext
 ) => Promise<void>;
 
@@ -53,12 +55,40 @@ const logger = createLogger('mcp-http-transport');
 /**
  * JSON-RPC request schema for validation
  */
-const jsonRpcRequestSchema = z.object({
-  jsonrpc: z.literal('2.0'),
-  id: z.union([z.string(), z.number(), z.null()]),
-  method: z.string(),
-  params: z.record(z.unknown()).optional()
-});
+const jsonRpcRequestSchema = z
+  .object({
+    jsonrpc: z.literal('2.0'),
+    id: z.union([z.string(), z.number(), z.null()]).optional(),
+    method: z.string().optional(),
+    params: z.record(z.unknown()).optional(),
+    result: z.unknown().optional(),
+    error: z
+      .object({
+        code: z.number(),
+        message: z.string(),
+        data: z.unknown().optional()
+      })
+      .optional()
+  })
+  .refine(
+    (data) => {
+      // Must have either method (request/notification) or result/error (response)
+      const hasMethod = data.method !== undefined;
+      const hasResult = data.result !== undefined;
+      const hasError = data.error !== undefined;
+
+      return hasMethod || hasResult || hasError;
+    },
+    {
+      message:
+        "JSON-RPC message must have either 'method' (for requests/notifications) or 'result'/'error' (for responses)"
+    }
+  );
+
+/**
+ * JSON-RPC batch request schema
+ */
+const jsonRpcBatchSchema = z.array(jsonRpcRequestSchema).min(1);
 
 /**
  * MCP HTTP transport configuration
@@ -67,6 +97,8 @@ export interface McpHttpTransportConfig {
   enableStreaming?: boolean;
   maxRequestSize?: number;
   requestTimeout?: number;
+  allowedOrigins?: string[];
+  enforceLocalhost?: boolean;
 }
 
 /**
@@ -75,15 +107,52 @@ export interface McpHttpTransportConfig {
 export interface McpRequestContext {
   user: JwtPayload;
   requestId: string;
-  correlationId?: string;
+  correlationId?: string | undefined;
   startTime: bigint;
+}
+
+/**
+ * Session information with proper typing
+ */
+interface SessionInfo {
+  source: SSESource;
+  createdAt: Date;
+  lastActivity: Date;
+  userId: string;
+  lastEventId?: string;
+  eventBuffer: Array<{ id: string; event?: string; data: string }>;
+  heartbeatTimer?: NodeJS.Timeout;
+  cleanupHandlers: Array<() => void>;
+}
+
+/**
+ * Fastify instance with authentication middleware
+ */
+interface AuthenticatedFastifyInstance extends FastifyInstance {
+  authenticate?: (
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => Promise<void>;
 }
 
 /**
  * Custom Streamable HTTP transport for Fastify integration
  */
 class FastifyStreamableTransport implements Transport {
-  constructor(_config: McpHttpTransportConfig = {}) {}
+  private requestHandler?: RequestHandler;
+  private notificationHandler?: NotificationHandler;
+  private errorHandler?: (error: Error) => void;
+  private closeHandler?: () => void;
+  private pendingRequests = new Map<
+    string | number,
+    {
+      resolve: (response: JSONRPCResponse) => void;
+      reject: (error: Error) => void;
+      sessionId?: string;
+    }
+  >();
+
+  constructor(public config: McpHttpTransportConfig = {}) {}
 
   /**
    * Starts the transport (no-op for HTTP)
@@ -100,38 +169,73 @@ class FastifyStreamableTransport implements Transport {
   }
 
   /**
-   * Sends a message (not used in server-side HTTP transport)
+   * Sends a message to appropriate SSE sessions
    */
-  async send(_message: JSONRPCRequest | JSONRPCResponse): Promise<void> {
-    throw new Error('Send not supported in HTTP server transport');
+  async send(message: JSONRPCRequest | JSONRPCResponse): Promise<void> {
+    // For responses, route to the session that made the request
+    if (
+      ('id' in message && message.id !== null && 'result' in message) ||
+      'error' in message
+    ) {
+      const pending = this.pendingRequests.get(message.id);
+      if (pending) {
+        if (pending.sessionId) {
+          this.sendToSession(pending.sessionId, message);
+        }
+        pending.resolve(message as JSONRPCResponse);
+        this.pendingRequests.delete(message.id);
+        return;
+      }
+    }
+
+    // For requests/notifications from server, broadcast to all sessions
+    if ('method' in message) {
+      const sessionIds = Array.from(sessionStore.keys());
+      const sendPromises = sessionIds.map((sessionId) =>
+        this.sendToSession(sessionId, message)
+      );
+
+      const results = await Promise.all(sendPromises);
+      const sentCount = results.filter((success) => success).length;
+
+      if (sentCount === 0) {
+        logger.warn('No active sessions to send message to', {
+          method: (message as JSONRPCRequest).method,
+          totalSessions: sessionIds.length
+        });
+      }
+    }
   }
 
   /**
    * Sets request handler
    */
-  onRequest(_handler: RequestHandler): void {
-    // This will be called by the MCP server to register request handlers
+  onRequest(handler: RequestHandler): void {
+    this.requestHandler = handler;
     logger.debug('Request handler registered');
   }
 
   /**
    * Sets notification handler
    */
-  onNotification(_handler: NotificationHandler): void {
+  onNotification(handler: NotificationHandler): void {
+    this.notificationHandler = handler;
     logger.debug('Notification handler registered');
   }
 
   /**
    * Sets error handler
    */
-  onError(_handler: (error: Error) => void): void {
+  onError(handler: (error: Error) => void): void {
+    this.errorHandler = handler;
     logger.debug('Error handler registered');
   }
 
   /**
    * Sets close handler
    */
-  onClose(_handler: () => void): void {
+  onClose(handler: () => void): void {
+    this.closeHandler = handler;
     logger.debug('Close handler registered');
   }
 
@@ -147,43 +251,177 @@ class FastifyStreamableTransport implements Transport {
       'mcp-http-transport',
       'handleRequest'
     );
+    const authenticatedRequest = request as AuthenticatedRequest;
+    if (!authenticatedRequest.user) {
+      throw new ValidationError('Request is not authenticated');
+    }
+
     const context: McpRequestContext = {
-      user: (request as AuthenticatedRequest).user,
+      user: authenticatedRequest.user,
       requestId: request.id,
-      correlationId: request.headers['x-correlation-id'] as string,
+      correlationId: request.headers['x-correlation-id'] as string | undefined,
       startTime: process.hrtime.bigint()
     };
 
     try {
-      // Validate JSON-RPC request
-      const jsonRpcRequest = this.validateRequest(request.body);
+      // Validate Accept header
+      const acceptHeader = request.headers.accept || '';
+      const acceptsJson =
+        acceptHeader.includes('application/json') ||
+        acceptHeader === '*/*' ||
+        !acceptHeader;
+      const acceptsSSE = acceptHeader.includes('text/event-stream');
 
-      logger.info('Processing MCP request', {
-        method: jsonRpcRequest.method,
-        id: jsonRpcRequest.id,
-        user: context.user.sub,
-        requestId: context.requestId,
-        correlationId: context.correlationId
-      });
-
-      // Check permissions if specified
-      if (context.user.permissions) {
-        this.checkPermissions(jsonRpcRequest.method, context.user.permissions);
+      if (!acceptsJson && !acceptsSSE) {
+        throw new ValidationError(
+          'Invalid Accept header. Must accept application/json or text/event-stream',
+          undefined,
+          { acceptHeader }
+        );
       }
 
-      // Process the request through MCP server
-      const response = await this.processRequest(
-        jsonRpcRequest,
-        context,
-        mcpServer
+      // Validate JSON-RPC request
+      const jsonRpcData = this.validateRequest(request.body);
+      const isBatch = Array.isArray(jsonRpcData);
+      const requests = isBatch ? jsonRpcData : [jsonRpcData];
+
+      // Check if all messages are responses/notifications
+      const allResponsesOrNotifications = requests.every((req) => {
+        // A message is a request if it has a method property
+        if (req.method !== undefined) return false;
+
+        // A message is a response if it has exactly one of: result or error
+        const hasResult = req.hasOwnProperty('result');
+        const hasError = req.hasOwnProperty('error');
+
+        // Must have exactly one of result or error for a response
+        return (hasResult && !hasError) || (!hasResult && hasError);
+      });
+
+      if (allResponsesOrNotifications) {
+        // For responses and notifications, return 202 Accepted with no body
+        await reply.status(202).send();
+
+        perfLogger.end('MCP response/notification accepted', {
+          count: requests.length,
+          batch: isBatch
+        });
+        return;
+      }
+
+      // Process each request
+      const responses: JSONRPCResponse[] = [];
+      const errors: Array<{ id: string | number | null; error: unknown }> = [];
+
+      for (const jsonRpcMessage of requests) {
+        try {
+          // Skip responses (they should be handled differently)
+          if (!jsonRpcMessage.method) {
+            continue;
+          }
+
+          logger.info('Processing MCP request', {
+            method: jsonRpcMessage.method,
+            id: jsonRpcMessage.id,
+            user: context.user.sub,
+            requestId: context.requestId,
+            correlationId: context.correlationId,
+            batch: isBatch
+          });
+
+          // Check permissions if specified
+          if (context.user.permissions) {
+            this.checkPermissions(
+              jsonRpcMessage.method,
+              context.user.permissions
+            );
+          }
+
+          // For requests, delegate to the appropriate handler
+          let response: JSONRPCResponse;
+
+          if (jsonRpcMessage.id !== null && jsonRpcMessage.id !== undefined) {
+            // This is a request - use request handler if available
+            if (this.requestHandler) {
+              response = await this.requestHandler(
+                jsonRpcMessage as JSONRPCRequest,
+                context
+              );
+            } else {
+              // Fallback to direct processing
+              response = await this.processRequest(
+                jsonRpcMessage as JSONRPCRequest,
+                context,
+                mcpServer
+              );
+            }
+            responses.push(response);
+          } else {
+            // This is a notification - use notification handler if available
+            if (this.notificationHandler) {
+              await this.notificationHandler(
+                { ...jsonRpcMessage, id: null } as JSONRPCNotification, // Ensure notification has null id
+                context
+              );
+            } else {
+              // Log notification since we can't process it
+              logger.info('Received notification', {
+                method: jsonRpcMessage.method,
+                params: jsonRpcMessage.params
+              });
+            }
+          }
+        } catch (error) {
+          // For requests with IDs, add error response
+          if (jsonRpcMessage.id !== null && jsonRpcMessage.id !== undefined) {
+            errors.push({
+              id: jsonRpcMessage.id,
+              error
+            });
+          }
+          // For notifications, just log the error
+          else {
+            logger.error('Notification processing failed', {
+              method: jsonRpcMessage.method,
+              error: error instanceof Error ? error.message : error
+            });
+          }
+        }
+      }
+
+      // Create error responses
+      const errorResponses = errors.map(({ id, error }) =>
+        this.createErrorResponse(id, error)
       );
 
-      // Send response
-      await reply.send(response);
+      // Combine successful and error responses
+      const allResponses = [...responses, ...errorResponses];
+
+      // Send response based on Accept header and response count
+      if (allResponses.length === 0) {
+        // All were notifications, return 202 Accepted
+        await reply.status(202).send();
+      } else if (acceptsSSE && acceptsJson) {
+        // Client accepts both, send as JSON for now (SSE will be for GET)
+        if (isBatch) {
+          await reply.send(allResponses);
+        } else {
+          await reply.send(allResponses[0]);
+        }
+      } else {
+        // Send as JSON
+        if (isBatch) {
+          await reply.send(allResponses);
+        } else {
+          await reply.send(allResponses[0]);
+        }
+      }
 
       perfLogger.end('MCP request completed successfully', {
-        method: jsonRpcRequest.method,
-        responseSize: JSON.stringify(response).length
+        requestCount: requests.length,
+        responseCount: allResponses.length,
+        batch: isBatch,
+        acceptHeader
       });
     } catch (error) {
       logger.error('MCP request failed', {
@@ -213,8 +451,13 @@ class FastifyStreamableTransport implements Transport {
   /**
    * Validates JSON-RPC request format
    */
-  private validateRequest(body: unknown): JSONRPCRequest {
+  private validateRequest(body: unknown): JSONRPCRequest | JSONRPCRequest[] {
     try {
+      // Try to parse as batch first
+      if (Array.isArray(body)) {
+        return jsonRpcBatchSchema.parse(body) as JSONRPCRequest[];
+      }
+      // Otherwise parse as single request
       return jsonRpcRequestSchema.parse(body) as JSONRPCRequest;
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -460,7 +703,7 @@ class FastifyStreamableTransport implements Transport {
     }
 
     return {
-      jsonrpc: '2.0',
+      jsonrpc: '2.0' as const,
       id: id ?? 0,
       error: {
         code,
@@ -469,35 +712,318 @@ class FastifyStreamableTransport implements Transport {
       }
     } as unknown as JSONRPCResponse;
   }
+
+  /**
+   * Sends a message to a specific SSE session
+   */
+  async sendToSession(
+    sessionId: string,
+    message: JSONRPCRequest | JSONRPCResponse
+  ): Promise<boolean> {
+    try {
+      return await withSessionLock(sessionId, () => {
+        const session = sessionStore.get(sessionId);
+        if (!session) {
+          return false;
+        }
+
+        try {
+          const eventId = crypto.randomUUID();
+          const event = {
+            id: eventId,
+            data: JSON.stringify(message)
+          };
+
+          session.source.push(event);
+
+          // Add to event buffer for resumption
+          session.eventBuffer.push(event);
+
+          // Trim buffer if too large
+          if (
+            session.eventBuffer.length > SESSION_CONFIG.MAX_EVENT_BUFFER_SIZE
+          ) {
+            session.eventBuffer = session.eventBuffer.slice(
+              -SESSION_CONFIG.MAX_EVENT_BUFFER_SIZE
+            );
+          }
+
+          session.lastActivity = new Date();
+          return true;
+        } catch (error) {
+          logger.error('Failed to send SSE message', {
+            sessionId,
+            error: error instanceof Error ? error.message : error
+          });
+          throw error; // Let the caller decide whether to cleanup
+        }
+      });
+    } catch (error) {
+      // Cleanup session on error
+      await cleanupSession(sessionId);
+      return false;
+    }
+  }
+
+  /**
+   * Broadcasts a message to all SSE sessions for a user
+   */
+  async broadcastToUser(
+    userId: string,
+    message: JSONRPCRequest | JSONRPCResponse
+  ): Promise<number> {
+    const sendPromises: Promise<boolean>[] = [];
+    const targetSessionIds: string[] = [];
+
+    for (const [sessionId, session] of sessionStore.entries()) {
+      if (session.userId === userId) {
+        targetSessionIds.push(sessionId);
+        sendPromises.push(this.sendToSession(sessionId, message));
+      }
+    }
+
+    const results = await Promise.all(sendPromises);
+    const sentCount = results.filter((success) => success).length;
+
+    logger.debug('Broadcast message to user', {
+      userId,
+      targetSessions: targetSessionIds.length,
+      successfulSends: sentCount
+    });
+
+    return sentCount;
+  }
+
+  /**
+   * Ends an SSE stream for a session
+   */
+  async endStream(sessionId: string, reason?: string): Promise<boolean> {
+    const session = sessionStore.get(sessionId);
+    if (!session) {
+      return false;
+    }
+
+    try {
+      // Send end event
+      session.source.push({
+        event: 'end',
+        data: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'connection/end',
+          params: { sessionId, reason: reason || 'completed' }
+        })
+      });
+
+      // Close the stream
+      await cleanupSession(sessionId);
+      return true;
+    } catch (error) {
+      logger.error('Failed to end SSE stream', {
+        sessionId,
+        error: error instanceof Error ? error.message : error
+      });
+      await cleanupSession(sessionId);
+      return false;
+    }
+  }
+}
+
+/**
+ * SSE Source type from fastify-sse-v2
+ */
+interface SSESource {
+  push(message: { event?: string; data: string; id?: string }): void;
+}
+
+/**
+ * Session store for managing SSE connections with thread safety
+ */
+const sessionStore = new Map<string, SessionInfo>();
+const sessionStoreMutex = new Map<string, Promise<void>>();
+
+/**
+ * Session configuration
+ */
+const SESSION_CONFIG = {
+  TTL_MS: 30 * 60 * 1000, // 30 minutes
+  HEARTBEAT_INTERVAL_MS: 30 * 1000, // 30 seconds
+  CLEANUP_INTERVAL_MS: 60 * 1000, // 1 minute
+  MAX_EVENT_BUFFER_SIZE: 1000
+};
+
+/**
+ * Cleanup timer for stale sessions
+ */
+let sessionCleanupTimer: NodeJS.Timeout | null = null;
+
+/**
+ * Starts session cleanup timer
+ */
+function startSessionCleanup(): void {
+  if (!sessionCleanupTimer) {
+    sessionCleanupTimer = setInterval(async () => {
+      const now = Date.now();
+      const staleSessionIds: string[] = [];
+
+      // Collect stale session IDs
+      for (const [sessionId, session] of sessionStore.entries()) {
+        const age = now - session.lastActivity.getTime();
+        if (age > SESSION_CONFIG.TTL_MS) {
+          staleSessionIds.push(sessionId);
+        }
+      }
+
+      // Clean up stale sessions in parallel
+      if (staleSessionIds.length > 0) {
+        logger.info('Cleaning up stale sessions', {
+          count: staleSessionIds.length,
+          sessionIds: staleSessionIds
+        });
+
+        await Promise.all(
+          staleSessionIds.map((sessionId) =>
+            cleanupSession(sessionId).catch((error) =>
+              logger.error('Failed to cleanup session', { sessionId, error })
+            )
+          )
+        );
+      }
+    }, SESSION_CONFIG.CLEANUP_INTERVAL_MS);
+  }
+}
+
+/**
+ * Stops session cleanup timer
+ */
+function stopSessionCleanup(): void {
+  if (sessionCleanupTimer) {
+    clearInterval(sessionCleanupTimer);
+    sessionCleanupTimer = null;
+  }
+}
+
+/**
+ * Safely access session store with mutex protection
+ */
+async function withSessionLock<T>(
+  sessionId: string,
+  operation: () => Promise<T> | T
+): Promise<T> {
+  // Wait for any existing operation on this session to complete
+  if (sessionStoreMutex.has(sessionId)) {
+    await sessionStoreMutex.get(sessionId);
+  }
+
+  // Create a new promise for this operation
+  let resolve: () => void;
+  const promise = new Promise<void>((res) => {
+    resolve = res;
+  });
+  sessionStoreMutex.set(sessionId, promise);
+
+  try {
+    const result = await operation();
+    return result;
+  } finally {
+    // Release the lock
+    sessionStoreMutex.delete(sessionId);
+    resolve!();
+  }
+}
+
+/**
+ * Cleans up a session with mutex protection
+ */
+async function cleanupSession(sessionId: string): Promise<void> {
+  await withSessionLock(sessionId, () => {
+    const session = sessionStore.get(sessionId);
+    if (session) {
+      // Clear heartbeat timer
+      if (session.heartbeatTimer) {
+        clearInterval(session.heartbeatTimer);
+      }
+
+      // Run cleanup handlers
+      session.cleanupHandlers.forEach((handler) => {
+        try {
+          handler();
+        } catch (error) {
+          logger.error('Error in cleanup handler', { sessionId, error });
+        }
+      });
+
+      // Remove from store
+      sessionStore.delete(sessionId);
+    }
+  });
 }
 
 /**
  * Registers MCP HTTP transport with Fastify
  */
 export async function registerMcpTransport(
-  app: FastifyInstance,
+  app: AuthenticatedFastifyInstance,
   mcpServer: McpServer,
   config: McpHttpTransportConfig = {}
 ): Promise<FastifyStreamableTransport> {
   const transport = new FastifyStreamableTransport(config);
 
-  // Register the /messages endpoint
+  // Connect the transport to the MCP server
+  mcpServer.connect(transport);
+
+  // Verify authentication middleware is available
+  if (!app.authenticate) {
+    throw new Error(
+      'Authentication middleware not found. Ensure JWT authentication plugin is registered before calling registerMcpTransport.'
+    );
+  }
+
+  // Register POST endpoint for messages
   app.post(
     '/messages',
     {
-      preHandler: (app as any).authenticate,
+      preHandler: app.authenticate,
       schema: {
         body: {
-          type: 'object',
-          required: ['jsonrpc', 'method'],
-          properties: {
-            jsonrpc: { type: 'string', enum: ['2.0'] },
-            id: {
-              oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }]
+          oneOf: [
+            {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  jsonrpc: { type: 'string', enum: ['2.0'] },
+                  id: {
+                    oneOf: [
+                      { type: 'string' },
+                      { type: 'number' },
+                      { type: 'null' }
+                    ]
+                  },
+                  method: { type: 'string' },
+                  params: { type: 'object' },
+                  result: {},
+                  error: { type: 'object' }
+                }
+              }
             },
-            method: { type: 'string' },
-            params: { type: 'object' }
-          }
+            {
+              type: 'object',
+              properties: {
+                jsonrpc: { type: 'string', enum: ['2.0'] },
+                id: {
+                  oneOf: [
+                    { type: 'string' },
+                    { type: 'number' },
+                    { type: 'null' }
+                  ]
+                },
+                method: { type: 'string' },
+                params: { type: 'object' },
+                result: {},
+                error: { type: 'object' }
+              }
+            }
+          ]
         }
       }
     },
@@ -506,8 +1032,184 @@ export async function registerMcpTransport(
     }
   );
 
+  // Register GET endpoint for SSE streams
+  app.get(
+    '/messages',
+    {
+      preHandler: app.authenticate
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authenticatedRequest = request as AuthenticatedRequest;
+      if (!authenticatedRequest.user) {
+        return reply.status(401).send({ error: 'Authentication required' });
+      }
+
+      const context: McpRequestContext = {
+        user: authenticatedRequest.user,
+        requestId: request.id,
+        correlationId: request.headers['x-correlation-id'] as
+          | string
+          | undefined,
+        startTime: process.hrtime.bigint()
+      };
+
+      // Validate Origin header
+      const origin = request.headers.origin;
+      if (origin && transport.config.allowedOrigins) {
+        if (!transport.config.allowedOrigins.includes(origin)) {
+          return reply.status(403).send({
+            error: 'Forbidden: Invalid Origin header'
+          });
+        }
+      }
+
+      // Get or create session ID
+      const providedSessionId = request.headers['mcp-session-id'] as string;
+      const sessionId =
+        providedSessionId && /^[a-zA-Z0-9-_]+$/.test(providedSessionId)
+          ? providedSessionId
+          : crypto.randomUUID();
+
+      // Get Last-Event-ID for resumption
+      const lastEventId = request.headers['last-event-id'] as string;
+
+      // Set custom headers before starting SSE
+      reply.raw.setHeader('Mcp-Session-Id', sessionId);
+      reply.raw.setHeader('Cache-Control', 'no-cache');
+      reply.raw.setHeader('Connection', 'keep-alive');
+
+      // Set up SSE - this sends headers
+      reply.sse(async (source: SSESource) => {
+        // Create cleanup handlers array
+        const cleanupHandlers: Array<() => void> = [];
+
+        // Create heartbeat timer
+        const heartbeatTimer = setInterval(() => {
+          try {
+            source.push({
+              event: 'ping',
+              data: JSON.stringify({ timestamp: Date.now() })
+            });
+          } catch (error) {
+            logger.error('Heartbeat failed', { sessionId, error });
+            cleanupSession(sessionId);
+          }
+        }, SESSION_CONFIG.HEARTBEAT_INTERVAL_MS);
+
+        // Store session
+        const sessionInfo: SessionInfo = {
+          source,
+          createdAt: new Date(),
+          lastActivity: new Date(),
+          userId: context.user.sub,
+          lastEventId,
+          eventBuffer: [],
+          heartbeatTimer,
+          cleanupHandlers
+        };
+
+        sessionStore.set(sessionId, sessionInfo);
+
+        // Start cleanup timer if not already running
+        startSessionCleanup();
+
+        logger.info('SSE connection established', {
+          sessionId,
+          user: context.user.sub,
+          requestId: context.requestId
+        });
+
+        // Send initial connection event
+        source.push({
+          event: 'open',
+          data: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'connection/open',
+            params: {
+              sessionId,
+              protocolVersion: '2024-11-05'
+            }
+          })
+        });
+
+        // Handle connection close
+        const closeHandler = () => {
+          logger.info('SSE connection closed', {
+            sessionId,
+            user: context.user.sub
+          });
+          // Run cleanup in background
+          cleanupSession(sessionId).catch((error) =>
+            logger.error('Error during connection cleanup', {
+              sessionId,
+              error
+            })
+          );
+        };
+
+        request.raw.on('close', closeHandler);
+        cleanupHandlers.push(() =>
+          request.raw.removeListener('close', closeHandler)
+        );
+
+        // If resuming, replay missed events
+        if (lastEventId && sessionInfo.eventBuffer.length > 0) {
+          const startIndex = sessionInfo.eventBuffer.findIndex(
+            (e) => e.id === lastEventId
+          );
+          if (startIndex >= 0) {
+            const eventsToReplay = sessionInfo.eventBuffer.slice(
+              startIndex + 1
+            );
+            for (const event of eventsToReplay) {
+              source.push(event);
+            }
+          }
+        }
+
+        // Keep the stream open until explicitly closed
+        // The stream will be closed when:
+        // 1. Client disconnects (closeHandler)
+        // 2. Session is deleted via DELETE endpoint
+        // 3. Session TTL expires (cleanup timer)
+        // 4. Server sends end event for completed request streams
+      });
+    }
+  );
+
+  // Register DELETE endpoint for session termination
+  app.delete(
+    '/messages',
+    {
+      preHandler: app.authenticate
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const sessionId = request.headers['mcp-session-id'] as string;
+
+      if (!sessionId) {
+        return reply.status(400).send({
+          error: 'Missing Mcp-Session-Id header'
+        });
+      }
+
+      const session = sessionStore.get(sessionId);
+      if (session) {
+        // Just remove from store, the SSE connection will handle closing
+        sessionStore.delete(sessionId);
+
+        const authenticatedRequest = request as AuthenticatedRequest;
+        logger.info('Session terminated', {
+          sessionId,
+          user: authenticatedRequest.user?.sub || 'unknown'
+        });
+      }
+
+      reply.status(204).send();
+    }
+  );
+
   logger.info('MCP HTTP transport registered', {
-    endpoint: '/messages',
+    endpoints: ['/messages (POST)', '/messages (GET)', '/messages (DELETE)'],
     enableStreaming: config.enableStreaming
   });
 

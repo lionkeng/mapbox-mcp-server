@@ -13,6 +13,7 @@ import fastifyJwt from '@fastify/jwt';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyCors from '@fastify/cors';
 import fastifyRateLimit from '@fastify/rate-limit';
+import fastifySSE from 'fastify-sse-v2';
 import type { FastifyJWTOptions } from '@fastify/jwt';
 import type { FastifyCorsOptions } from '@fastify/cors';
 import type { RateLimitOptions } from '@fastify/rate-limit';
@@ -127,6 +128,9 @@ export class HttpServer {
 
     // Register rate limiting
     await this.registerRateLimit(app);
+
+    // Register SSE support
+    await app.register(fastifySSE);
 
     return app;
   }

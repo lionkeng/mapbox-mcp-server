@@ -93,16 +93,16 @@ Comprehensive error and edge case testing:
 
 The HTTP endpoint provides access to all 8 Mapbox tools:
 
-| Tool                       | Endpoint          | Description                                              |
-| -------------------------- | ----------------- | -------------------------------------------------------- |
-| `mapbox_geocoding_forward` | Forward geocoding | Convert addresses to coordinates                         |
-| `mapbox_geocoding_reverse` | Reverse geocoding | Convert coordinates to addresses                         |
-| `mapbox_directions`        | Directions API    | Get routing directions between points                    |
-| `mapbox_isochrone`         | Isochrone API     | Generate travel time polygons                            |
-| `mapbox_matrix`            | Matrix API        | Calculate travel times/distances between multiple points |
-| `mapbox_poi_search`        | POI Search        | Search for points of interest                            |
-| `mapbox_category_search`   | Category Search   | Search by business category                              |
-| `mapbox_static_map`        | Static Images     | Generate static map images                               |
+| Tool                     | Endpoint          | Description                                              |
+| ------------------------ | ----------------- | -------------------------------------------------------- |
+| `MapboxGeocodingForward` | Forward geocoding | Convert addresses to coordinates                         |
+| `MapboxGeocodingReverse` | Reverse geocoding | Convert coordinates to addresses                         |
+| `MapboxDirections`       | Directions API    | Get routing directions between points                    |
+| `MapboxIsochrone`        | Isochrone API     | Generate travel time polygons                            |
+| `MapboxMatrix`           | Matrix API        | Calculate travel times/distances between multiple points |
+| `MapboxPoiSearch`        | POI Search        | Search for points of interest                            |
+| `MapboxCategorySearch`   | Category Search   | Search by business category                              |
+| `MapboxStaticMap`        | Static Images     | Generate static map images                               |
 
 ## Test Utilities
 
@@ -127,19 +127,15 @@ const httpTestConfig = {
 };
 
 // Test a tool
-const response = await callHttpTool(
-  httpTestConfig,
-  'mapbox_geocoding_forward',
-  {
-    query: 'San Francisco, CA',
-    limit: 1
-  }
-);
+const response = await callHttpTool(httpTestConfig, 'MapboxGeocodingForward', {
+  query: 'San Francisco, CA',
+  limit: 1
+});
 
 // Use predefined test data
 const response = await callHttpTool(
   httpTestConfig,
-  'mapbox_directions',
+  'MapboxDirections',
   testData.directions.valid
 );
 ```
@@ -238,14 +234,10 @@ const httpTestConfig = {
 };
 
 // Call a tool
-const response = await callHttpTool(
-  httpTestConfig,
-  'mapbox_geocoding_forward',
-  {
-    query: 'San Francisco, CA',
-    limit: 1
-  }
-);
+const response = await callHttpTool(httpTestConfig, 'MapboxGeocodingForward', {
+  query: 'San Francisco, CA',
+  limit: 1
+});
 
 const data = await response.json();
 console.log(data.result.content[0].text); // Geocoding results
@@ -260,7 +252,7 @@ await httpServer.stop();
 // Test invalid parameters
 const errorResponse = await callHttpTool(
   httpTestConfig,
-  'mapbox_geocoding_forward',
+  'MapboxGeocodingForward',
   {
     query: 123, // Should be string
     limit: 'invalid' // Should be number
@@ -277,13 +269,13 @@ console.log(errorData.error.message); // Descriptive error message
 ```javascript
 // Test multiple tools concurrently
 const promises = [
-  callHttpTool(config, 'mapbox_geocoding_forward', { query: 'NYC', limit: 1 }),
-  callHttpTool(config, 'mapbox_poi_search', {
+  callHttpTool(config, 'MapboxGeocodingForward', { query: 'NYC', limit: 1 }),
+  callHttpTool(config, 'MapboxPoiSearch', {
     query: 'coffee',
     proximity: [-74, 40],
     limit: 3
   }),
-  callHttpTool(config, 'mapbox_directions', {
+  callHttpTool(config, 'MapboxDirections', {
     coordinates: [
       [-74, 40],
       [-73, 41]

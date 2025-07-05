@@ -76,9 +76,14 @@ describe('Error Scenarios and Edge Cases', () => {
 
   afterEach(async () => {
     if (httpServer) {
-      await httpServer.stop();
+      try {
+        await httpServer.stop();
+      } catch (error) {
+        // Ignore cleanup errors
+        console.warn('Error during server cleanup:', error);
+      }
     }
-  });
+  }, 10000); // Increase timeout for cleanup
 
   // Helper functions
   const callHttpTool = async (
@@ -218,7 +223,7 @@ describe('Error Scenarios and Edge Cases', () => {
           id: 1,
           method: 'tools/call',
           params: {
-            name: 'mapbox_geocoding_forward',
+            name: 'MapboxGeocodingForward',
             arguments: { q: 'San Francisco', limit: 1 }
           }
         })
@@ -241,7 +246,7 @@ describe('Error Scenarios and Edge Cases', () => {
           id: 1,
           method: 'tools/call',
           params: {
-            name: 'mapbox_geocoding_forward',
+            name: 'MapboxGeocodingForward',
             arguments: { q: 'San Francisco', limit: 1 }
           }
         })
@@ -264,7 +269,7 @@ describe('Error Scenarios and Edge Cases', () => {
           id: 1,
           // Missing method field
           params: {
-            name: 'mapbox_geocoding_forward',
+            name: 'MapboxGeocodingForward',
             arguments: { q: 'San Francisco', limit: 1 }
           }
         })
@@ -279,7 +284,7 @@ describe('Error Scenarios and Edge Cases', () => {
   describe('Tool Parameter Validation Errors', () => {
     it('should validate basic parameter errors', async () => {
       // Test missing required parameter
-      const response = await callHttpTool('mapbox_geocoding_forward', {
+      const response = await callHttpTool('MapboxGeocodingForward', {
         // Missing required 'q' parameter
         limit: 1
       });
@@ -294,14 +299,20 @@ describe('Error Scenarios and Edge Cases', () => {
   describe('HTTP Protocol Errors', () => {
     it('should reject unsupported HTTP methods', async () => {
       const methodResponse = await fetch(`${serverUrl}/messages`, {
-        method: 'GET', // Should be POST
+        method: 'PUT', // Truly unsupported method
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${testToken}`
-        }
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/list',
+          params: {}
+        })
       });
 
-      expect(methodResponse.status).toBe(404); // Not found - GET to /messages
+      expect(methodResponse.status).toBe(404); // Not found - PUT not supported
     });
 
     it('should reject invalid Content-Type', async () => {
@@ -373,7 +384,7 @@ describe('Error Scenarios and Edge Cases', () => {
           id: 1,
           method: 'tools/call',
           params: {
-            name: 'mapbox_geocoding_forward',
+            name: 'MapboxGeocodingForward',
             arguments: { q: 'San Francisco', limit: 1 }
           }
         })
@@ -407,7 +418,7 @@ describe('Error Scenarios and Edge Cases', () => {
           id: 1,
           method: 'tools/call',
           params: {
-            name: 'mapbox_geocoding_forward', // Requires geocode permission
+            name: 'MapboxGeocodingForward', // Requires geocode permission
             arguments: { q: 'San Francisco', limit: 1 }
           }
         })
@@ -434,7 +445,7 @@ describe('Error Scenarios and Edge Cases', () => {
         id: 1,
         method: 'tools/call',
         params: {
-          name: 'mapbox_geocoding_forward',
+          name: 'MapboxGeocodingForward',
           arguments: {
             q: 'x'.repeat(2 * 1024 * 1024), // 2MB query
             limit: 1
@@ -478,7 +489,7 @@ describe('Error Scenarios and Edge Cases', () => {
   describe('Boundary Value Testing', () => {
     it('should handle basic boundary validation', async () => {
       // Test invalid coordinate range
-      const response = await callHttpTool('mapbox_geocoding_reverse', {
+      const response = await callHttpTool('MapboxGeocodingReverse', {
         longitude: 200, // Invalid longitude
         latitude: 37.7749,
         limit: 1
@@ -502,7 +513,7 @@ describe('Error Scenarios and Edge Cases', () => {
       expect(data1.jsonrpc).toBe('2.0');
       expect(data1.error).toBeDefined();
 
-      const response2 = await callHttpTool('mapbox_geocoding_forward', {
+      const response2 = await callHttpTool('MapboxGeocodingForward', {
         limit: 1
       }); // Missing q param
       expect(response2.status).toBe(200);
@@ -514,7 +525,7 @@ describe('Error Scenarios and Edge Cases', () => {
 
   describe('Error Message Quality', () => {
     it('should provide helpful and informative error messages', async () => {
-      const response = await callHttpTool('mapbox_geocoding_forward', {
+      const response = await callHttpTool('MapboxGeocodingForward', {
         q: 123, // Invalid type
         limit: 1
       });

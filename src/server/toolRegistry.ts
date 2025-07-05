@@ -82,6 +82,20 @@ export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
   private toolInstances = new Map<string, MapboxApiBasedTool<any>>();
 
+  /**
+   * Static mapping of tool names to their required permissions
+   */
+  private static readonly TOOL_PERMISSIONS: Record<string, string[]> = {
+    MapboxGeocodingForward: ['mapbox:geocode'],
+    MapboxGeocodingReverse: ['mapbox:geocode'],
+    MapboxDirections: ['mapbox:directions'],
+    MapboxIsochrone: ['mapbox:isochrone'],
+    MapboxMatrix: ['mapbox:matrix'],
+    MapboxPoiSearch: ['mapbox:poi'],
+    MapboxCategorySearch: ['mapbox:poi'],
+    MapboxStaticMap: ['mapbox:static-images']
+  };
+
   constructor() {
     this.initializeTools();
   }
@@ -146,19 +160,20 @@ export class ToolRegistry {
    * Gets required permissions for a tool
    */
   private getToolPermissions(toolName: string): string[] {
-    // Map tool names to required permissions
-    const permissionMap: Record<string, string[]> = {
-      mapbox_geocoding_forward: ['mapbox:geocode'],
-      mapbox_geocoding_reverse: ['mapbox:geocode'],
-      mapbox_directions: ['mapbox:directions'],
-      mapbox_isochrone: ['mapbox:isochrone'],
-      mapbox_matrix: ['mapbox:matrix'],
-      mapbox_poi_search: ['mapbox:poi'],
-      mapbox_category_search: ['mapbox:poi'],
-      mapbox_static_map: ['mapbox:static-images']
-    };
+    const permissions = ToolRegistry.TOOL_PERMISSIONS[toolName];
+    if (!permissions) {
+      logger.error('No permissions defined for tool', { toolName });
+      throw new ValidationError(
+        `No permissions defined for tool: ${toolName}`,
+        undefined,
+        {
+          toolName,
+          availableTools: Object.keys(ToolRegistry.TOOL_PERMISSIONS)
+        }
+      );
+    }
 
-    return permissionMap[toolName] || ['mapbox:tools'];
+    return permissions;
   }
 
   /**

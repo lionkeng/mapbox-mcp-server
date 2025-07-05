@@ -167,7 +167,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(listData.result.tools.length).toBe(8);
 
       // Step 3: Call a tool
-      const toolResponse = await callHttpTool('mapbox_geocoding_forward', {
+      const toolResponse = await callHttpTool('MapboxGeocodingForward', {
         q: 'San Francisco, CA',
         limit: 1
       });
@@ -183,7 +183,7 @@ describe('End-to-End Workflow Tests', () => {
   describe('Travel Planning Workflow', () => {
     it('should complete travel planning: geocode → directions → isochrone → static map', async () => {
       // Step 1: Geocode starting point
-      const geocodeResponse = await callHttpTool('mapbox_geocoding_forward', {
+      const geocodeResponse = await callHttpTool('MapboxGeocodingForward', {
         q: 'Golden Gate Bridge, San Francisco, CA',
         limit: 1
       });
@@ -194,7 +194,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(geocodeData.result).toBeDefined();
 
       // Step 2: Get directions from bridge to downtown
-      const directionsResponse = await callHttpTool('mapbox_directions', {
+      const directionsResponse = await callHttpTool('MapboxDirections', {
         coordinates: [
           [-122.4783, 37.8199], // Golden Gate Bridge
           [-122.4194, 37.7749] // Downtown SF
@@ -208,7 +208,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(directionsData.result).toBeDefined();
 
       // Step 3: Generate isochrone from starting point
-      const isochroneResponse = await callHttpTool('mapbox_isochrone', {
+      const isochroneResponse = await callHttpTool('MapboxIsochrone', {
         coordinates: { longitude: -122.4783, latitude: 37.8199 },
         contours_minutes: [10, 20],
         profile: 'mapbox/driving',
@@ -221,7 +221,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(isochroneData.result).toBeDefined();
 
       // Step 4: Create static map of the area
-      const mapResponse = await callHttpTool('mapbox_static_map', {
+      const mapResponse = await callHttpTool('MapboxStaticMap', {
         center: { longitude: -122.4783, latitude: 37.8199 },
         zoom: 12,
         size: { width: 400, height: 300 },
@@ -240,7 +240,7 @@ describe('End-to-End Workflow Tests', () => {
       const coordinates = { longitude: -122.4194, latitude: 37.7749 }; // Downtown SF
 
       // Step 1: Reverse geocode to understand the location
-      const reverseResponse = await callHttpTool('mapbox_geocoding_reverse', {
+      const reverseResponse = await callHttpTool('MapboxGeocodingReverse', {
         longitude: coordinates.longitude,
         latitude: coordinates.latitude,
         limit: 1
@@ -252,7 +252,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(reverseData.result).toBeDefined();
 
       // Step 2: Search for nearby coffee shops
-      const poiResponse = await callHttpTool('mapbox_poi_search', {
+      const poiResponse = await callHttpTool('MapboxPoiSearch', {
         q: 'coffee',
         proximity: coordinates,
         limit: 5
@@ -264,7 +264,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(poiData.result).toBeDefined();
 
       // Step 3: Search for restaurants by category
-      const categoryResponse = await callHttpTool('mapbox_category_search', {
+      const categoryResponse = await callHttpTool('MapboxCategorySearch', {
         category: 'restaurant',
         proximity: coordinates,
         limit: 5
@@ -286,7 +286,7 @@ describe('End-to-End Workflow Tests', () => {
       ];
 
       // Step 1: Calculate distance/time matrix
-      const matrixResponse = await callHttpTool('mapbox_matrix', {
+      const matrixResponse = await callHttpTool('MapboxMatrix', {
         coordinates: locations,
         profile: 'driving'
       });
@@ -297,7 +297,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(matrixData.result).toBeDefined();
 
       // Step 2: Get detailed directions for the shortest route
-      const directionsResponse = await callHttpTool('mapbox_directions', {
+      const directionsResponse = await callHttpTool('MapboxDirections', {
         coordinates: [
           [locations[0].longitude, locations[0].latitude],
           [locations[1].longitude, locations[1].latitude]
@@ -319,22 +319,22 @@ describe('End-to-End Workflow Tests', () => {
 
       // Execute multiple tools concurrently
       const promises = [
-        callHttpTool('mapbox_geocoding_reverse', {
+        callHttpTool('MapboxGeocodingReverse', {
           longitude: coordinates.longitude,
           latitude: coordinates.latitude,
           limit: 1
         }),
-        callHttpTool('mapbox_poi_search', {
+        callHttpTool('MapboxPoiSearch', {
           q: 'restaurant',
           proximity: coordinates,
           limit: 3
         }),
-        callHttpTool('mapbox_category_search', {
+        callHttpTool('MapboxCategorySearch', {
           category: 'shopping',
           proximity: coordinates,
           limit: 3
         }),
-        callHttpTool('mapbox_isochrone', {
+        callHttpTool('MapboxIsochrone', {
           coordinates,
           contours_minutes: [15],
           profile: 'mapbox/walking',
@@ -362,18 +362,18 @@ describe('End-to-End Workflow Tests', () => {
       // Mix of valid and invalid requests
       const promises = [
         // Valid request
-        callHttpTool('mapbox_geocoding_forward', {
+        callHttpTool('MapboxGeocodingForward', {
           q: 'San Francisco',
           limit: 1
         }),
         // Invalid request (bad coordinates)
-        callHttpTool('mapbox_geocoding_reverse', {
+        callHttpTool('MapboxGeocodingReverse', {
           longitude: 200,
           latitude: 100,
           limit: 1
         }),
         // Valid request
-        callHttpTool('mapbox_poi_search', {
+        callHttpTool('MapboxPoiSearch', {
           q: 'coffee',
           proximity: validCoordinates,
           limit: 3
@@ -429,7 +429,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Test full access user
       const fullAccessResponse = await callHttpTool(
-        'mapbox_directions',
+        'MapboxDirections',
         {
           coordinates: [
             [-122.4194, 37.7749],
@@ -447,7 +447,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Test limited access user with allowed tool
       const allowedResponse = await callHttpTool(
-        'mapbox_geocoding_forward',
+        'MapboxGeocodingForward',
         {
           q: 'San Francisco',
           limit: 1
@@ -462,7 +462,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Test limited access user with restricted tool
       const restrictedResponse = await callHttpTool(
-        'mapbox_directions',
+        'MapboxDirections',
         {
           coordinates: [
             [-122.4194, 37.7749],
@@ -487,7 +487,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Make 20 rapid requests
       const promises = Array.from({ length: 20 }, (_, i) =>
-        callHttpTool('mapbox_geocoding_forward', {
+        callHttpTool('MapboxGeocodingForward', {
           q: `Test Query ${i}`,
           limit: 1
         })
@@ -525,20 +525,20 @@ describe('End-to-End Workflow Tests', () => {
       const testCases = [
         {
           name: 'Empty string query',
-          tool: 'mapbox_geocoding_forward',
+          tool: 'MapboxGeocodingForward',
           args: { q: '', limit: 1 },
           expectError: true
         },
         {
           name: 'Zero coordinates',
-          tool: 'mapbox_geocoding_reverse',
+          tool: 'MapboxGeocodingReverse',
           args: { longitude: 0, latitude: 0, limit: 1 },
           expectError: true // Should expect error for (0,0)
         },
         // Skipped: Mapbox API may return error for minimum zoom level in some environments
         // {
         //   name: 'Minimum zoom level',
-        //   tool: 'mapbox_static_map',
+        //   tool: 'MapboxStaticMap',
         //   args: {
         //     center: { longitude: -122.4194, latitude: 37.7749 },
         //     zoom: 1,
@@ -550,7 +550,7 @@ describe('End-to-End Workflow Tests', () => {
         // Skipped: Mapbox API may return error for maximum zoom level in some environments
         // {
         //   name: 'Maximum zoom level',
-        //   tool: 'mapbox_static_map',
+        //   tool: 'MapboxStaticMap',
         //   args: {
         //     center: { longitude: -122.4194, latitude: 37.7749 },
         //     zoom: 22,
@@ -561,7 +561,7 @@ describe('End-to-End Workflow Tests', () => {
         // },
         {
           name: 'Single coordinate for matrix',
-          tool: 'mapbox_matrix',
+          tool: 'MapboxMatrix',
           args: {
             coordinates: [{ longitude: -122.4194, latitude: 37.7749 }],
             profile: 'driving'
@@ -602,7 +602,7 @@ describe('End-to-End Workflow Tests', () => {
   describe('Resource Cleanup', () => {
     it('should handle server shutdown behavior correctly', async () => {
       // Make some requests
-      const response1 = await callHttpTool('mapbox_geocoding_forward', {
+      const response1 = await callHttpTool('MapboxGeocodingForward', {
         q: 'San Francisco',
         limit: 1
       });
