@@ -124,13 +124,14 @@ Add to your Claude Desktop MCP configuration:
 
 3. **Make MCP requests:**
    ```bash
-   curl -X POST http://localhost:8080/mcp \
+   curl -X POST http://localhost:8080/messages \
      -H "Authorization: Bearer YOUR_JWT_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
        "jsonrpc": "2.0",
        "id": 1,
-       "method": "tools/list"
+       "method": "tools/list",
+       "params": {}
      }'
    ```
 

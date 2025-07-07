@@ -150,7 +150,7 @@ describe('Error Scenarios and Edge Cases', () => {
         })
       });
 
-      expect(noAuthResponse.status).toBe(400);
+      expect(noAuthResponse.status).toBe(401);
       const noAuthData = (await noAuthResponse.json()) as any;
       expect(noAuthData.error).toBeDefined();
     });
@@ -170,7 +170,7 @@ describe('Error Scenarios and Edge Cases', () => {
         })
       });
 
-      expect(invalidFormatResponse.status).toBe(400);
+      expect(invalidFormatResponse.status).toBe(401);
     });
 
     it('should reject expired JWT', async () => {
@@ -188,7 +188,7 @@ describe('Error Scenarios and Edge Cases', () => {
         })
       });
 
-      expect(expiredResponse.status).toBe(400);
+      expect(expiredResponse.status).toBe(401);
     });
 
     it('should reject JWT with wrong secret', async () => {
@@ -206,7 +206,7 @@ describe('Error Scenarios and Edge Cases', () => {
         })
       });
 
-      expect(wrongSecretResponse.status).toBe(400);
+      expect(wrongSecretResponse.status).toBe(401);
     });
   });
 
@@ -275,9 +275,11 @@ describe('Error Scenarios and Edge Cases', () => {
         })
       });
 
-      expect(missingMethodResponse.status).toBe(400);
+      expect(missingMethodResponse.status).toBe(200);
       const missingMethodData = (await missingMethodResponse.json()) as any;
+      expect(missingMethodData.jsonrpc).toBe('2.0');
       expect(missingMethodData.error).toBeDefined();
+      expect(missingMethodData.error.message).toContain('method');
     });
   });
 
@@ -390,9 +392,11 @@ describe('Error Scenarios and Edge Cases', () => {
         })
       });
 
-      expect(noPermResponse.status).toBe(400);
+      expect(noPermResponse.status).toBe(200);
       const noPermData = (await noPermResponse.json()) as any;
+      expect(noPermData.jsonrpc).toBe('2.0');
       expect(noPermData.error).toBeDefined();
+      expect(noPermData.error.message).toContain('permission');
     });
 
     it('should reject requests with wrong permissions', async () => {
@@ -424,9 +428,11 @@ describe('Error Scenarios and Edge Cases', () => {
         })
       });
 
-      expect(wrongPermResponse.status).toBe(400);
+      expect(wrongPermResponse.status).toBe(200);
       const wrongPermData = (await wrongPermResponse.json()) as any;
+      expect(wrongPermData.jsonrpc).toBe('2.0');
       expect(wrongPermData.error).toBeDefined();
+      expect(wrongPermData.error.message).toContain('permission');
     });
   });
 

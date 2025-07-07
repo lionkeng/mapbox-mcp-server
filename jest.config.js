@@ -26,7 +26,12 @@ export default {
     }
   },
   collectCoverageFrom: ['src/**/*.{js,ts}', '!src/index.ts'],
-  testPathIgnorePatterns: ['/node_modules/', 'src/index.ts', '/dist/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    'src/index.ts',
+    '/dist/',
+    'src/__tests__/helpers/'
+  ],
   transform: {
     ...tsJestTransformCfg
   }

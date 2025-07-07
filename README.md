@@ -34,6 +34,7 @@ For more information about Mapbox access tokens, see the [Mapbox documentation o
 For detailed setup instructions for different integrations, refer to the following guides:
 
 - [Claude Desktop Setup](./docs/claude-desktop-setup.md) - Instructions for configuring Claude Desktop to work with this MCP server
+- [Claude Code HTTP Setup](./docs/claude-code-http-setup.md) - Instructions for using HTTP transport with Claude Code CLI
 - [VS Code Setup](./docs/vscode-setup.md) - Setting up a development environment in Visual Studio Code
 - [Cursor AI IDE Setup](./docs/cursor-setup.md) - Setting up a development environment in Cursor AI IDE
 - [Smolagents Integration](./docs/using-mcp-with-smolagents/README.md) - Example showing how to connect Smolagents AI agents to Mapbox's tools

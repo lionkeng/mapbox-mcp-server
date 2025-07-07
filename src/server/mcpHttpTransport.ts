@@ -485,6 +485,12 @@ class FastifyStreamableTransport implements Transport {
       return;
     }
 
+    // tools/list is a read-only operation that should be allowed without specific permissions
+    // as it only lists available tools without executing them
+    if (method === 'tools/list') {
+      return;
+    }
+
     // Extract permission from method name
     // e.g., "resources/read" -> "resources"
     const [category] = method.split('/');
@@ -987,13 +993,33 @@ export async function registerMcpTransport(
         body: {
           oneOf: [
             {
+              type: 'object',
+              required: ['jsonrpc'],
+              properties: {
+                jsonrpc: { type: 'string', enum: ['2.0'] },
+                id: {
+                  anyOf: [
+                    { type: 'string' },
+                    { type: 'number' },
+                    { type: 'null' }
+                  ]
+                },
+                method: { type: 'string' },
+                params: { type: 'object' },
+                result: {},
+                error: { type: 'object' }
+              }
+            },
+            {
               type: 'array',
+              minItems: 1,
               items: {
                 type: 'object',
+                required: ['jsonrpc'],
                 properties: {
                   jsonrpc: { type: 'string', enum: ['2.0'] },
                   id: {
-                    oneOf: [
+                    anyOf: [
                       { type: 'string' },
                       { type: 'number' },
                       { type: 'null' }
@@ -1004,23 +1030,6 @@ export async function registerMcpTransport(
                   result: {},
                   error: { type: 'object' }
                 }
-              }
-            },
-            {
-              type: 'object',
-              properties: {
-                jsonrpc: { type: 'string', enum: ['2.0'] },
-                id: {
-                  oneOf: [
-                    { type: 'string' },
-                    { type: 'number' },
-                    { type: 'null' }
-                  ]
-                },
-                method: { type: 'string' },
-                params: { type: 'object' },
-                result: {},
-                error: { type: 'object' }
               }
             }
           ]
