@@ -8,7 +8,8 @@ import {
   createTestToken,
   createAuthHeader,
   TEST_HEADERS,
-  MCP_REQUESTS
+  MCP_REQUESTS,
+  validateSseHeaders
 } from '../helpers/index.js';
 
 describe('Routes Unit Tests', () => {
@@ -274,9 +275,32 @@ describe('Routes Unit Tests', () => {
   });
 
   describe('HTTP Method Support', () => {
-    it.skip('should support GET for SSE endpoint', () => {
-      // Skipped: Fastify.inject() does not support streaming endpoints that never close (SSE).
-      // This test is covered by integration/e2e tests.
+    it('should support GET for SSE endpoint', async () => {
+      const app = await buildTestApp();
+      const token = createTestToken();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/messages',
+        headers: {
+          Accept: 'text/event-stream',
+          ...createAuthHeader(token)
+        },
+        payloadAsStream: true
+      });
+
+      // Verify SSE endpoint responds correctly
+      expect(response.statusCode).toBe(200);
+
+      // Validate SSE-specific headers
+      validateSseHeaders(response.headers);
+
+      // Test that the endpoint exists and responds to GET
+      expect(response.statusCode).not.toBe(404); // Not found
+      expect(response.statusCode).not.toBe(405); // Method not allowed
+
+      // Verify session ID is generated
+      expect(response.headers['mcp-session-id']).toBeTruthy();
     });
 
     it('should support DELETE for session cleanup', async () => {

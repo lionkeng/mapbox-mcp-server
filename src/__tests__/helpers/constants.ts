@@ -250,3 +250,23 @@ export function expectTimingWithin(
     );
   }
 }
+
+/**
+ * Server-Sent Events header constants
+ */
+export const SSE_HEADERS = {
+  CONTENT_TYPE: 'text/event-stream',
+  CACHE_CONTROL: 'no-cache',
+  CONNECTION: 'keep-alive'
+} as const;
+
+/**
+ * Helper to validate SSE response headers
+ */
+export function validateSseHeaders(
+  headers: Record<string, string | number | string[] | undefined>
+): void {
+  expect(headers['content-type']).toContain(SSE_HEADERS.CONTENT_TYPE);
+  expect(headers['cache-control']).toContain(SSE_HEADERS.CACHE_CONTROL);
+  expect(headers['connection']).toBe(SSE_HEADERS.CONNECTION);
+}

@@ -14,7 +14,11 @@ import {
   PERMISSION_SETS,
   extractTokenPayload
 } from '../helpers/index.js';
-import { TEST_HEADERS, MCP_REQUESTS } from '../helpers/index.js';
+import {
+  TEST_HEADERS,
+  MCP_REQUESTS,
+  validateSseHeaders
+} from '../helpers/index.js';
 
 describe('Authentication Unit Tests', () => {
   describe('JWT Token Validation', () => {
@@ -294,9 +298,30 @@ describe('Authentication Unit Tests', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it.skip('should allow authenticated GET requests', () => {
-      // Skipped: Fastify.inject() does not support streaming endpoints that never close (SSE).
-      // This test is covered by integration/e2e tests.
+    it('should allow authenticated GET requests for SSE', async () => {
+      const app = await buildTestApp();
+      const token = createTestToken();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/messages',
+        headers: {
+          Accept: 'text/event-stream',
+          ...createAuthHeader(token)
+        },
+        payloadAsStream: true // Enable streaming mode for SSE testing
+      });
+
+      // Test SSE connection establishment
+      expect(response.statusCode).toBe(200);
+
+      // Validate SSE-specific headers
+      validateSseHeaders(response.headers);
+
+      // Verify session ID is generated
+      expect(response.headers['mcp-session-id']).toBeTruthy();
+
+      // No need to test streaming data - just connection establishment
     });
 
     it('should allow authenticated DELETE requests', async () => {
