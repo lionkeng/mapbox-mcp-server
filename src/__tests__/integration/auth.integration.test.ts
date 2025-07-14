@@ -35,7 +35,7 @@ describe('Authentication Integration Tests', () => {
   describe('JWT Token Validation', () => {
     it('should accept valid JWT tokens', async () => {
       const token = createTestToken();
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -52,7 +52,7 @@ describe('Authentication Integration Tests', () => {
 
     it('should reject expired tokens', async () => {
       const expiredToken = createExpiredToken();
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -68,7 +68,7 @@ describe('Authentication Integration Tests', () => {
 
     it('should reject tokens with wrong secret', async () => {
       const invalidToken = createInvalidToken();
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -81,7 +81,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     it('should reject malformed JWT tokens', async () => {
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -94,7 +94,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     it('should reject requests without Authorization header', async () => {
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: TEST_HEADERS.JSON,
         body: JSON.stringify(MCP_REQUESTS.TOOLS_LIST)
@@ -104,7 +104,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     it('should reject invalid Authorization header format', async () => {
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -182,7 +182,7 @@ describe('Authentication Integration Tests', () => {
           allowedTools.forEach((toolName) => {
             it(`should allow ${toolName}`, async () => {
               const token = createLimitedPermissionsToken(permissions);
-              const response = await fetch(`${serverUrl}/messages`, {
+              const response = await fetch(`${serverUrl}/mcp`, {
                 method: 'POST',
                 headers: {
                   ...TEST_HEADERS.JSON,
@@ -209,7 +209,7 @@ describe('Authentication Integration Tests', () => {
           deniedTools.forEach((toolName) => {
             it(`should deny ${toolName}`, async () => {
               const token = createLimitedPermissionsToken(permissions);
-              const response = await fetch(`${serverUrl}/messages`, {
+              const response = await fetch(`${serverUrl}/mcp`, {
                 method: 'POST',
                 headers: {
                   ...TEST_HEADERS.JSON,
@@ -238,8 +238,8 @@ describe('Authentication Integration Tests', () => {
   });
 
   describe('Authentication Across HTTP Methods', () => {
-    it('should require authentication for POST /messages', async () => {
-      const response = await fetch(`${serverUrl}/messages`, {
+    it('should require authentication for POST /mcp', async () => {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: TEST_HEADERS.JSON,
         body: JSON.stringify(MCP_REQUESTS.TOOLS_LIST)
@@ -248,8 +248,8 @@ describe('Authentication Integration Tests', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should require authentication for GET /messages (SSE)', async () => {
-      const response = await fetch(`${serverUrl}/messages`, {
+    it('should require authentication for GET /mcp (SSE)', async () => {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'GET',
         headers: {
           Accept: 'text/event-stream'
@@ -259,8 +259,8 @@ describe('Authentication Integration Tests', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should require authentication for DELETE /messages', async () => {
-      const response = await fetch(`${serverUrl}/messages`, {
+    it('should require authentication for DELETE /mcp', async () => {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'DELETE',
         headers: {
           'Mcp-Session-Id': 'test-session'
@@ -272,7 +272,7 @@ describe('Authentication Integration Tests', () => {
 
     it('should allow authenticated GET requests (SSE)', async () => {
       const token = createTestToken();
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'GET',
         headers: {
           Accept: 'text/event-stream',
@@ -293,7 +293,7 @@ describe('Authentication Integration Tests', () => {
 
     it('should allow authenticated DELETE requests', async () => {
       const token = createTestToken();
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'DELETE',
         headers: {
           ...createAuthHeader(token),
@@ -309,7 +309,7 @@ describe('Authentication Integration Tests', () => {
     it('should handle tokens with missing permissions field', async () => {
       // This would test a malformed token without permissions
       const tokenWithoutPermissions = createNoPermissionsToken();
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -329,7 +329,7 @@ describe('Authentication Integration Tests', () => {
         sub: 'user-with-extra-claims'
       });
 
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -350,7 +350,7 @@ describe('Authentication Integration Tests', () => {
       );
       const token = createTestToken(manyPermissions);
 
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -366,7 +366,7 @@ describe('Authentication Integration Tests', () => {
 
     it('should validate JWT issuer and audience', async () => {
       const invalidToken = createInvalidToken();
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -384,7 +384,7 @@ describe('Authentication Integration Tests', () => {
       const tokens = createTestTokenSet();
 
       // Test valid token
-      const validResponse = await fetch(`${serverUrl}/messages`, {
+      const validResponse = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -395,7 +395,7 @@ describe('Authentication Integration Tests', () => {
       expect(validResponse.status).toBe(200);
 
       // Test expired token
-      const expiredResponse = await fetch(`${serverUrl}/messages`, {
+      const expiredResponse = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -406,7 +406,7 @@ describe('Authentication Integration Tests', () => {
       expect(expiredResponse.status).toBe(401);
 
       // Test invalid token
-      const invalidResponse = await fetch(`${serverUrl}/messages`, {
+      const invalidResponse = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -417,7 +417,7 @@ describe('Authentication Integration Tests', () => {
       expect(invalidResponse.status).toBe(401);
 
       // Test geocode-only token with allowed operation
-      const geocodeAllowedResponse = await fetch(`${serverUrl}/messages`, {
+      const geocodeAllowedResponse = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -430,7 +430,7 @@ describe('Authentication Integration Tests', () => {
       expect(geocodeData.result).toBeDefined();
 
       // Test geocode-only token with denied operation
-      const geocodeDeniedResponse = await fetch(`${serverUrl}/messages`, {
+      const geocodeDeniedResponse = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -449,7 +449,7 @@ describe('Authentication Integration Tests', () => {
     it('should handle multiple concurrent authenticated requests', async () => {
       const token = createTestToken();
       const promises = Array.from({ length: 10 }, (_, i) =>
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -476,7 +476,7 @@ describe('Authentication Integration Tests', () => {
       const token = createTestToken();
       const promises = [
         // Authenticated request
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -488,7 +488,7 @@ describe('Authentication Integration Tests', () => {
           })
         }),
         // Unauthenticated request
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: TEST_HEADERS.JSON,
           body: JSON.stringify({
@@ -497,7 +497,7 @@ describe('Authentication Integration Tests', () => {
           })
         }),
         // Another authenticated request
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,

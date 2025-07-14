@@ -272,10 +272,7 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// Start the application
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    console.error('Failed to start application:', error);
-    process.exit(1);
-  });
-}
+main().catch((error) => {
+  console.error('Failed to start application:', error);
+  process.exit(1);
+});

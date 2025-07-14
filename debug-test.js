@@ -43,7 +43,7 @@ async function debugTest() {
 
   // Test 1: Directions with invalid profile
   console.log('\n=== Test 1: Directions with invalid profile ===');
-  const response1 = await fetch(`${serverUrl}/messages`, {
+  const response1 = await fetch(`${serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ async function debugTest() {
 
   // Test 2: Category search with invalid category
   console.log('\n=== Test 2: Category search with invalid category ===');
-  const response2 = await fetch(`${serverUrl}/messages`, {
+  const response2 = await fetch(`${serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ async function debugTest() {
 
   // Test 3: Static map (should succeed)
   console.log('\n=== Test 3: Static map (should succeed) ===');
-  const response3 = await fetch(`${serverUrl}/messages`, {
+  const response3 = await fetch(`${serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -156,12 +156,12 @@ try {
   console.log('');
   console.log('Add to Claude Code:');
   console.log(
-    `claude mcp add --transport http mapbox-server http://localhost:8080/messages \\`
+    `claude mcp add --transport http mapbox-server http://localhost:8080/mcp \\`
   );
   console.log(`  --header "Authorization: Bearer ${token}"`);
   console.log('');
   console.log('Test with curl (single request):');
-  console.log(`curl -X POST http://localhost:8080/messages \\`);
+  console.log(`curl -X POST http://localhost:8080/mcp \\`);
   console.log(`  -H "Content-Type: application/json" \\`);
   console.log(`  -H "Authorization: Bearer ${token}" \\`);
   console.log(
@@ -169,7 +169,7 @@ try {
   );
   console.log('');
   console.log('Test with curl (batch request):');
-  console.log(`curl -X POST http://localhost:8080/messages \\`);
+  console.log(`curl -X POST http://localhost:8080/mcp \\`);
   console.log(`  -H "Content-Type: application/json" \\`);
   console.log(`  -H "Authorization: Bearer ${token}" \\`);
   console.log(`  -d '[`);

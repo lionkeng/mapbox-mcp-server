@@ -125,7 +125,7 @@ async function createTestJWT(secret) {
 }
 
 async function callTool(serverUrl, toolName, args, token) {
-  return fetch(`${serverUrl}/messages`, {
+  return fetch(`${serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ async function callTool(serverUrl, toolName, args, token) {
 }
 
 async function listTools(serverUrl, token) {
-  return fetch(`${serverUrl}/messages`, {
+  return fetch(`${serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

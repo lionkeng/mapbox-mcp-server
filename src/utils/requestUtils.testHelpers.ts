@@ -61,7 +61,7 @@ export async function callHttpTool(
 ): Promise<Response> {
   const authToken = token || createTestJWT(config);
 
-  return fetch(`${config.serverUrl}/messages`, {
+  return fetch(`${config.serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ export async function listHttpTools(
 ): Promise<Response> {
   const authToken = token || createTestJWT(config);
 
-  return fetch(`${config.serverUrl}/messages`, {
+  return fetch(`${config.serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export async function initializeHttpMcp(
 ): Promise<Response> {
   const authToken = token || createTestJWT(config);
 
-  return fetch(`${config.serverUrl}/messages`, {
+  return fetch(`${config.serverUrl}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

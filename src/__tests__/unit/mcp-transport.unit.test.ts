@@ -22,7 +22,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -46,7 +46,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -75,7 +75,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -98,7 +98,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -122,7 +122,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -139,7 +139,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -158,7 +158,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -175,7 +175,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -200,7 +200,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -220,7 +220,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -247,7 +247,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -275,7 +275,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -302,7 +302,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -325,7 +325,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -350,7 +350,7 @@ describe('MCP Transport Unit Tests', () => {
       // Test missing required parameter
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -378,7 +378,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -405,7 +405,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -434,7 +434,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -465,7 +465,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)
@@ -487,7 +487,7 @@ describe('MCP Transport Unit Tests', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/messages',
+        url: '/mcp',
         headers: {
           ...TEST_HEADERS.JSON,
           ...createAuthHeader(token)

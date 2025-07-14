@@ -30,7 +30,7 @@ export class SseConnection {
     sessionId: string;
   }> {
     try {
-      this.response = await fetch(`${this.serverUrl}/messages`, {
+      this.response = await fetch(`${this.serverUrl}/mcp`, {
         method: 'GET',
         headers: {
           Accept: 'text/event-stream',
@@ -133,7 +133,7 @@ export class SseConnection {
     // Delete the session if we have a session ID
     if (this.sessionId) {
       try {
-        const deleteResponse = await fetch(`${this.serverUrl}/messages`, {
+        const deleteResponse = await fetch(`${this.serverUrl}/mcp`, {
           method: 'DELETE',
           headers: {
             ...createAuthHeader(this.token),

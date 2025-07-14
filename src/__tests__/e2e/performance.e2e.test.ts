@@ -29,7 +29,7 @@ describe('Performance End-to-End Tests', () => {
 
   // Helper function to make MCP tool calls
   const callTool = async (toolName: string, args: Record<string, unknown>) => {
-    const response = await fetch(`${serverUrl}/messages`, {
+    const response = await fetch(`${serverUrl}/mcp`, {
       method: 'POST',
       headers: {
         ...TEST_HEADERS.JSON,
@@ -53,7 +53,7 @@ describe('Performance End-to-End Tests', () => {
     it('should respond to tools/list within acceptable time', async () => {
       const startTime = Date.now();
 
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -107,7 +107,7 @@ describe('Performance End-to-End Tests', () => {
       const iterations = 20;
 
       for (let i = 0; i < iterations; i++) {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -137,7 +137,7 @@ describe('Performance End-to-End Tests', () => {
       const startTime = Date.now();
 
       const promises = Array.from({ length: concurrentRequests }, (_, i) =>
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -222,7 +222,7 @@ describe('Performance End-to-End Tests', () => {
         const batchStart = Date.now();
 
         const batchPromises = Array.from({ length: requestsPerBatch }, (_, i) =>
-          fetch(`${serverUrl}/messages`, {
+          fetch(`${serverUrl}/mcp`, {
             method: 'POST',
             headers: {
               ...TEST_HEADERS.JSON,
@@ -269,7 +269,7 @@ describe('Performance End-to-End Tests', () => {
         params: {}
       }));
 
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,
@@ -308,7 +308,7 @@ describe('Performance End-to-End Tests', () => {
       const responses: Response[] = [];
 
       while (Date.now() - startTime < testDuration) {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -342,7 +342,7 @@ describe('Performance End-to-End Tests', () => {
     it('should establish SSE connections quickly', async () => {
       const startTime = Date.now();
 
-      const response = await fetch(`${serverUrl}/messages`, {
+      const response = await fetch(`${serverUrl}/mcp`, {
         method: 'GET',
         headers: {
           Accept: 'text/event-stream',
@@ -366,7 +366,7 @@ describe('Performance End-to-End Tests', () => {
       const startTime = Date.now();
 
       const connectionPromises = Array.from({ length: connectionCount }, () =>
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'GET',
           headers: {
             Accept: 'text/event-stream',
@@ -398,7 +398,7 @@ describe('Performance End-to-End Tests', () => {
 
     it('should maintain SSE performance under load', async () => {
       // Establish SSE connection
-      const sseResponse = await fetch(`${serverUrl}/messages`, {
+      const sseResponse = await fetch(`${serverUrl}/mcp`, {
         method: 'GET',
         headers: {
           Accept: 'text/event-stream',
@@ -410,7 +410,7 @@ describe('Performance End-to-End Tests', () => {
 
       // While SSE is active, make concurrent API calls
       const apiCalls = Array.from({ length: 10 }, (_, i) =>
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -447,7 +447,7 @@ describe('Performance End-to-End Tests', () => {
     it('should handle error conditions efficiently', async () => {
       const errorRequests = [
         // Invalid JSON
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -456,7 +456,7 @@ describe('Performance End-to-End Tests', () => {
           body: '{ invalid json }'
         }),
         // Invalid tool
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             ...TEST_HEADERS.JSON,
@@ -473,7 +473,7 @@ describe('Performance End-to-End Tests', () => {
           })
         }),
         // Missing authentication
-        fetch(`${serverUrl}/messages`, {
+        fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: TEST_HEADERS.JSON,
           body: JSON.stringify({
@@ -500,7 +500,7 @@ describe('Performance End-to-End Tests', () => {
 
     it('should recover quickly from error conditions', async () => {
       // Make an error request
-      await fetch(`${serverUrl}/messages`, {
+      await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: TEST_HEADERS.JSON,
         body: '{ invalid json }'
@@ -508,7 +508,7 @@ describe('Performance End-to-End Tests', () => {
 
       // Immediately follow with valid request
       const startTime = Date.now();
-      const validResponse = await fetch(`${serverUrl}/messages`, {
+      const validResponse = await fetch(`${serverUrl}/mcp`, {
         method: 'POST',
         headers: {
           ...TEST_HEADERS.JSON,

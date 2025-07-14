@@ -93,7 +93,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   // Helper function to make tool calls
   const callTool = async (toolName: string, args: Record<string, unknown>) => {
-    const response = await fetch(`${serverUrl}/messages`, {
+    const response = await fetch(`${serverUrl}/mcp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   // Helper function to list available tools
   const listTools = async () => {
-    const response = await fetch(`${serverUrl}/messages`, {
+    const response = await fetch(`${serverUrl}/mcp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -629,7 +629,7 @@ describe('HTTP Endpoint Integration Tests', () => {
   describe('MCP Streamable HTTP Transport Compliance', () => {
     describe('Accept Header Validation', () => {
       it('should accept requests with application/json Accept header', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -651,7 +651,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should accept requests with text/event-stream Accept header', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -673,7 +673,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should accept requests with both Accept headers', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -695,7 +695,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should reject requests with invalid Accept header', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -719,7 +719,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
     describe('Response and Notification Handling', () => {
       it('should return 202 Accepted for JSON-RPC responses', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -739,7 +739,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should return 202 Accepted for notifications (no id)', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -759,7 +759,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should return 202 Accepted for error responses', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -784,7 +784,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
     describe('Batch Request Support', () => {
       it('should handle batch requests with multiple operations', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -819,7 +819,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should handle batch with mixed requests and notifications', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -861,7 +861,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should return 202 for batch of only notifications', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -888,7 +888,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should handle batch with errors properly', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -925,7 +925,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
     describe('SSE Support (GET endpoint)', () => {
       it('should establish SSE connection with GET request', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'GET',
           headers: {
             Accept: 'text/event-stream',
@@ -946,7 +946,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should include session ID in SSE response', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'GET',
           headers: {
             Accept: 'text/event-stream',
@@ -993,7 +993,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should return 400 for DELETE without session ID', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'DELETE',
           headers: {
             Authorization: `Bearer ${TEST_TOKEN}`
@@ -1006,7 +1006,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should handle deletion of non-existent session', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'DELETE',
           headers: {
             Authorization: `Bearer ${TEST_TOKEN}`,
@@ -1020,7 +1020,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
     describe('Authentication with all HTTP methods', () => {
       it('should require authentication for POST requests', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1038,7 +1038,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should require authentication for GET requests', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'GET',
           headers: {
             Accept: 'text/event-stream'
@@ -1049,7 +1049,7 @@ describe('HTTP Endpoint Integration Tests', () => {
       });
 
       it('should require authentication for DELETE requests', async () => {
-        const response = await fetch(`${serverUrl}/messages`, {
+        const response = await fetch(`${serverUrl}/mcp`, {
           method: 'DELETE',
           headers: {
             'Mcp-Session-Id': 'test-session'

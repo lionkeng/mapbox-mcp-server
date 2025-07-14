@@ -1,6 +1,6 @@
 /**
  * MCP Streamable HTTP transport integration with Fastify
- * Provides the /messages endpoint for MCP protocol communication
+ * Provides the /mcp endpoint for MCP protocol communication
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -984,9 +984,9 @@ export async function registerMcpTransport(
     );
   }
 
-  // Register POST endpoint for messages
+  // Register POST endpoint for MCP protocol
   app.post(
-    '/messages',
+    '/mcp',
     {
       preHandler: app.authenticate,
       schema: {
@@ -1043,7 +1043,7 @@ export async function registerMcpTransport(
 
   // Register GET endpoint for SSE streams
   app.get(
-    '/messages',
+    '/mcp',
     {
       preHandler: app.authenticate
     },
@@ -1188,7 +1188,7 @@ export async function registerMcpTransport(
 
   // Register DELETE endpoint for session termination
   app.delete(
-    '/messages',
+    '/mcp',
     {
       preHandler: app.authenticate
     },
@@ -1218,7 +1218,7 @@ export async function registerMcpTransport(
   );
 
   logger.info('MCP HTTP transport registered', {
-    endpoints: ['/messages (POST)', '/messages (GET)', '/messages (DELETE)'],
+    endpoints: ['/mcp (POST)', '/mcp (GET)', '/mcp (DELETE)'],
     enableStreaming: config.enableStreaming
   });
 
