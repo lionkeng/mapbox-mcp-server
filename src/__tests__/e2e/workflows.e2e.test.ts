@@ -55,7 +55,7 @@ describe('Workflows End-to-End Tests', () => {
   describe('Travel Planning Workflow', () => {
     it('should complete full travel planning: geocode → directions → isochrone → static map', async () => {
       // Step 1: Geocode starting point
-      const geocodeData = await callTool('MapboxGeocodingForward', {
+      const geocodeData = await callTool('forward_geocode_tool', {
         q: 'Golden Gate Bridge, San Francisco, CA',
         limit: 1
       });
@@ -64,7 +64,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(geocodeData.result.content).toBeDefined();
 
       // Step 2: Get directions from bridge to downtown
-      const directionsData = await callTool('MapboxDirections', {
+      const directionsData = await callTool('directions_tool', {
         coordinates: [
           [-122.4783, 37.8199], // Golden Gate Bridge
           [-122.4194, 37.7749] // Downtown SF
@@ -76,7 +76,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(directionsData.result.content).toBeDefined();
 
       // Step 3: Generate isochrone from starting point
-      const isochroneData = await callTool('MapboxIsochrone', {
+      const isochroneData = await callTool('isochrone_tool', {
         coordinates: { longitude: -122.4783, latitude: 37.8199 },
         contours_minutes: [10, 20],
         profile: 'mapbox/driving',
@@ -87,7 +87,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(isochroneData.result.content).toBeDefined();
 
       // Step 4: Create static map of the area
-      const mapData = await callTool('MapboxStaticMap', {
+      const mapData = await callTool('static_map_image_tool', {
         center: { longitude: -122.4783, latitude: 37.8199 },
         zoom: 12,
         size: { width: 400, height: 300 },
@@ -102,7 +102,7 @@ describe('Workflows End-to-End Tests', () => {
       const coordinates = { longitude: -122.4194, latitude: 37.7749 }; // Downtown SF
 
       // Step 1: Reverse geocode to understand the location
-      const reverseData = await callTool('MapboxGeocodingReverse', {
+      const reverseData = await callTool('reverse_geocode_tool', {
         longitude: coordinates.longitude,
         latitude: coordinates.latitude,
         limit: 1
@@ -112,7 +112,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(reverseData.result.content).toBeDefined();
 
       // Step 2: Search for nearby coffee shops
-      const poiData = await callTool('MapboxPoiSearch', {
+      const poiData = await callTool('poi_search_tool', {
         q: 'coffee',
         proximity: coordinates,
         limit: 5
@@ -122,7 +122,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(poiData.result.content).toBeDefined();
 
       // Step 3: Search for restaurants by category
-      const categoryData = await callTool('MapboxCategorySearch', {
+      const categoryData = await callTool('category_search_tool', {
         category: 'restaurant',
         proximity: coordinates,
         limit: 5
@@ -140,7 +140,7 @@ describe('Workflows End-to-End Tests', () => {
       ];
 
       // Step 1: Calculate distance/time matrix
-      const matrixData = await callTool('MapboxMatrix', {
+      const matrixData = await callTool('matrix_tool', {
         coordinates: locations,
         profile: 'driving'
       });
@@ -149,7 +149,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(matrixData.result.content).toBeDefined();
 
       // Step 2: Get detailed directions for the shortest route
-      const directionsData = await callTool('MapboxDirections', {
+      const directionsData = await callTool('directions_tool', {
         coordinates: [
           [locations[0].longitude, locations[0].latitude],
           [locations[1].longitude, locations[1].latitude]
@@ -166,7 +166,7 @@ describe('Workflows End-to-End Tests', () => {
   describe('Complex Multi-Step Workflows', () => {
     it('should handle workflow with error recovery', async () => {
       // Step 1: Valid geocoding
-      const geocodeData = await callTool('MapboxGeocodingForward', {
+      const geocodeData = await callTool('forward_geocode_tool', {
         q: 'San Francisco, CA',
         limit: 1
       });
@@ -174,7 +174,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(geocodeData.result).toBeDefined();
 
       // Step 2: Attempt invalid operation (should fail gracefully)
-      const invalidData = await callTool('MapboxGeocodingReverse', {
+      const invalidData = await callTool('reverse_geocode_tool', {
         longitude: 200, // Invalid longitude
         latitude: 37.7749,
         limit: 1
@@ -183,7 +183,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(invalidData.error).toBeDefined();
 
       // Step 3: Continue with valid operation (should succeed)
-      const poiData = await callTool('MapboxPoiSearch', {
+      const poiData = await callTool('poi_search_tool', {
         q: 'restaurant',
         proximity: { longitude: -122.4194, latitude: 37.7749 },
         limit: 3
@@ -196,7 +196,7 @@ describe('Workflows End-to-End Tests', () => {
       // This simulates a workflow where results from one call inform the next
 
       // Step 1: Get location details
-      const geocodeData = await callTool('MapboxGeocodingForward', {
+      const geocodeData = await callTool('forward_geocode_tool', {
         q: 'Union Square, San Francisco',
         limit: 1
       });
@@ -208,7 +208,7 @@ describe('Workflows End-to-End Tests', () => {
       const unionSquareCoords = { longitude: -122.4077, latitude: 37.7879 };
 
       // Step 2: Use those coordinates for POI search
-      const poiData = await callTool('MapboxPoiSearch', {
+      const poiData = await callTool('poi_search_tool', {
         q: 'shopping',
         proximity: unionSquareCoords,
         limit: 5
@@ -217,7 +217,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(poiData.result).toBeDefined();
 
       // Step 3: Generate isochrone around the same location
-      const isochroneData = await callTool('MapboxIsochrone', {
+      const isochroneData = await callTool('isochrone_tool', {
         coordinates: unionSquareCoords,
         contours_minutes: [5, 10],
         profile: 'mapbox/walking',
@@ -227,7 +227,7 @@ describe('Workflows End-to-End Tests', () => {
       expect(isochroneData.result).toBeDefined();
 
       // Step 4: Create map visualization
-      const mapData = await callTool('MapboxStaticMap', {
+      const mapData = await callTool('static_map_image_tool', {
         center: unionSquareCoords,
         zoom: 14,
         size: { width: 500, height: 400 },
@@ -244,13 +244,13 @@ describe('Workflows End-to-End Tests', () => {
       const workflows = [
         // Workflow 1: NYC geocoding and POI search
         (async () => {
-          const geocode = await callTool('MapboxGeocodingForward', {
+          const geocode = await callTool('forward_geocode_tool', {
             q: 'Times Square, New York',
             limit: 1
           });
           expect(geocode.result).toBeDefined();
 
-          const poi = await callTool('MapboxPoiSearch', {
+          const poi = await callTool('poi_search_tool', {
             q: 'theater',
             proximity: { longitude: -73.9857, latitude: 40.7589 },
             limit: 3
@@ -262,7 +262,7 @@ describe('Workflows End-to-End Tests', () => {
 
         // Workflow 2: SF directions and matrix
         (async () => {
-          const directions = await callTool('MapboxDirections', {
+          const directions = await callTool('directions_tool', {
             coordinates: [
               [-122.4194, 37.7749],
               [-122.4094, 37.7849]
@@ -271,7 +271,7 @@ describe('Workflows End-to-End Tests', () => {
           });
           expect(directions.result).toBeDefined();
 
-          const matrix = await callTool('MapboxMatrix', {
+          const matrix = await callTool('matrix_tool', {
             coordinates: [
               { longitude: -122.4194, latitude: 37.7749 },
               { longitude: -122.4094, latitude: 37.7849 },
@@ -286,14 +286,14 @@ describe('Workflows End-to-End Tests', () => {
 
         // Workflow 3: London reverse geocoding and categories
         (async () => {
-          const reverse = await callTool('MapboxGeocodingReverse', {
+          const reverse = await callTool('reverse_geocode_tool', {
             longitude: -0.1276,
             latitude: 51.5074,
             limit: 1
           });
           expect(reverse.result).toBeDefined();
 
-          const category = await callTool('MapboxCategorySearch', {
+          const category = await callTool('category_search_tool', {
             category: 'museum',
             proximity: { longitude: -0.1276, latitude: 51.5074 },
             limit: 5
@@ -318,20 +318,20 @@ describe('Workflows End-to-End Tests', () => {
     it('should handle mixed success/failure in concurrent operations', async () => {
       const operations = [
         // Valid operation
-        callTool('MapboxGeocodingForward', {
+        callTool('forward_geocode_tool', {
           q: 'San Francisco',
           limit: 1
         }),
 
         // Invalid operation (bad coordinates)
-        callTool('MapboxGeocodingReverse', {
+        callTool('reverse_geocode_tool', {
           longitude: 200,
           latitude: 100,
           limit: 1
         }),
 
         // Valid operation
-        callTool('MapboxPoiSearch', {
+        callTool('poi_search_tool', {
           q: 'coffee',
           proximity: { longitude: -122.4194, latitude: 37.7749 },
           limit: 3
@@ -360,7 +360,7 @@ describe('Workflows End-to-End Tests', () => {
       const iterations = 10;
 
       for (let i = 0; i < iterations; i++) {
-        const data = await callTool('MapboxGeocodingForward', {
+        const data = await callTool('forward_geocode_tool', {
           q: `Test Query ${i}`,
           limit: 1
         });
@@ -382,7 +382,7 @@ describe('Workflows End-to-End Tests', () => {
 
         // Each client performs a mini-workflow
         for (let step = 0; step < 3; step++) {
-          const data = await callTool('MapboxGeocodingForward', {
+          const data = await callTool('forward_geocode_tool', {
             q: `Client ${clientId} Step ${step}`,
             limit: 1
           });
@@ -415,7 +415,7 @@ describe('Workflows End-to-End Tests', () => {
 
         // Step 1: Valid geocoding
         try {
-          const step1 = await callTool('MapboxGeocodingForward', {
+          const step1 = await callTool('forward_geocode_tool', {
             q: 'San Francisco',
             limit: 1
           });
@@ -441,7 +441,7 @@ describe('Workflows End-to-End Tests', () => {
 
         // Step 3: Valid operation (should succeed)
         try {
-          const step3 = await callTool('MapboxPoiSearch', {
+          const step3 = await callTool('poi_search_tool', {
             q: 'restaurant',
             proximity: { longitude: -122.4194, latitude: 37.7749 },
             limit: 3

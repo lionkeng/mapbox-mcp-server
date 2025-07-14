@@ -23,14 +23,14 @@ describe('Tool Registry', () => {
 
       // Check that we have the expected Mapbox tools
       const expectedTools = [
-        'MapboxGeocodingForward',
-        'MapboxGeocodingReverse',
-        'MapboxDirections',
-        'MapboxMatrix',
-        'MapboxIsochrone',
-        'MapboxPoiSearch',
-        'MapboxCategorySearch',
-        'MapboxStaticMap'
+        'forward_geocode_tool',
+        'reverse_geocode_tool',
+        'directions_tool',
+        'matrix_tool',
+        'isochrone_tool',
+        'poi_search_tool',
+        'category_search_tool',
+        'static_map_image_tool'
       ];
 
       expectedTools.forEach((toolName) => {
@@ -56,12 +56,10 @@ describe('Tool Registry', () => {
 
     it('should return tools with proper structure', () => {
       const tools = toolRegistry.listTools();
-      const geocodeTool = tools.find(
-        (t) => t.name === 'MapboxGeocodingForward'
-      );
+      const geocodeTool = tools.find((t) => t.name === 'forward_geocode_tool');
 
       expect(geocodeTool).toBeDefined();
-      expect(geocodeTool?.name).toBe('MapboxGeocodingForward');
+      expect(geocodeTool?.name).toBe('forward_geocode_tool');
       expect(geocodeTool?.description).toContain('geocod');
       expect(geocodeTool?.inputSchema).toBeDefined();
       expect(typeof geocodeTool?.inputSchema).toBe('object');
@@ -76,7 +74,7 @@ describe('Tool Registry', () => {
       };
 
       const result = await toolRegistry.executeTool(
-        'MapboxGeocodingForward',
+        'forward_geocode_tool',
         { q: 'San Francisco', limit: 1 },
         user
       );
@@ -105,7 +103,7 @@ describe('Tool Registry', () => {
 
       await expect(
         toolRegistry.executeTool(
-          'MapboxGeocodingForward', // Requires geocode permission
+          'forward_geocode_tool', // Requires geocode permission
           { q: 'San Francisco', limit: 1 },
           user
         )
@@ -119,7 +117,7 @@ describe('Tool Registry', () => {
       };
 
       const result = await toolRegistry.executeTool(
-        'MapboxGeocodingForward',
+        'forward_geocode_tool',
         { q: 'San Francisco', limit: 1 },
         user
       );
@@ -158,18 +156,20 @@ describe('Tool Registry', () => {
 
   describe('Tool Permissions', () => {
     it('should have correct permission mappings', () => {
-      expect(toolRegistry.hasTool('MapboxGeocodingReverse')).toBe(true);
-      expect(toolRegistry.hasTool('MapboxGeocodingForward')).toBe(true);
-      expect(toolRegistry.hasTool('MapboxDirections')).toBe(true);
-      expect(toolRegistry.hasTool('MapboxPoiSearch')).toBe(true);
-      expect(toolRegistry.hasTool('MapboxCategorySearch')).toBe(true);
+      expect(toolRegistry.hasTool('reverse_geocode_tool')).toBe(true);
+      expect(toolRegistry.hasTool('forward_geocode_tool')).toBe(true);
+      expect(toolRegistry.hasTool('directions_tool')).toBe(true);
+      expect(toolRegistry.hasTool('poi_search_tool')).toBe(true);
+      expect(toolRegistry.hasTool('category_search_tool')).toBe(true);
 
       // Test permission mapping
       const tools = toolRegistry.listTools();
-      const geocodeTools = tools.filter((t) => t.name.includes('Geocoding'));
-      const directionsTool = tools.find((t) => t.name === 'MapboxDirections');
+      const geocodeTools = tools.filter((t) => t.name.includes('geocode_tool'));
+      const directionsTool = tools.find((t) => t.name === 'directions_tool');
       const poiTools = tools.filter(
-        (t) => t.name.includes('Poi') || t.name.includes('Category')
+        (t) =>
+          t.name.includes('poi_search_tool') ||
+          t.name.includes('category_search_tool')
       );
 
       expect(geocodeTools.length).toBeGreaterThan(0);

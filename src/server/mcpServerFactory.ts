@@ -3,7 +3,8 @@
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { toolRegistry, getAllTools } from 'src/tools/toolRegistry.js';
+import { getAllTools } from '../tools/toolRegistry.js';
+import { toolRegistry } from './toolRegistry.js';
 import { createLogger } from '@/utils/logger.js';
 
 const logger = createLogger('mcp-server-factory');

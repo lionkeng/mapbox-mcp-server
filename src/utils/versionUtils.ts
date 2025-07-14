@@ -2,6 +2,29 @@ import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+/**
+ * Gets the current directory in a way that works in both ES modules and CommonJS
+ */
+function getCurrentDirectory(): string {
+  // For Jest/test environment, just use a reliable fallback
+  if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+    return path.resolve(process.cwd(), 'src', 'utils');
+  }
+
+  // Check if we're in an ES module context by looking for import.meta
+  if (typeof globalThis !== 'undefined' && 'importMeta' in globalThis) {
+    try {
+      // This would be set by runtime that supports ES modules
+      return path.dirname(fileURLToPath((globalThis as any).importMeta.url));
+    } catch {
+      // Fall through to default
+    }
+  }
+
+  // Default fallback for all environments
+  return path.resolve(process.cwd(), 'src', 'utils');
+}
+
 export interface VersionInfo {
   name: string;
   version: string;
@@ -30,7 +53,7 @@ export function getVersionInfo(): VersionInfo {
  */
 function tryVersionJson(name: string): VersionInfo | null {
   try {
-    const dirname = path.dirname(fileURLToPath(import.meta.url));
+    const dirname = getCurrentDirectory();
 
     // Try to read from version.json first (for build artifacts)
     const versionJsonPath = path.resolve(dirname, '..', 'version.json');
@@ -65,7 +88,7 @@ function tryVersionJson(name: string): VersionInfo | null {
  */
 function tryPackageJson(name: string): VersionInfo | null {
   try {
-    const dirname = path.dirname(fileURLToPath(import.meta.url));
+    const dirname = getCurrentDirectory();
     const possiblePaths = [
       path.resolve(dirname, '..', '..', 'package.json'),
       path.resolve(process.cwd(), 'package.json')

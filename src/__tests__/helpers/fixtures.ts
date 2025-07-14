@@ -83,7 +83,7 @@ export const MCP_REQUESTS = {
     id: 'test-geocode',
     method: 'tools/call',
     params: {
-      name: 'MapboxGeocodingForward',
+      name: 'forward_geocode_tool',
       arguments: {
         q: 'San Francisco, CA',
         limit: 1
@@ -96,7 +96,7 @@ export const MCP_REQUESTS = {
     id: 'test-reverse',
     method: 'tools/call',
     params: {
-      name: 'MapboxGeocodingReverse',
+      name: 'reverse_geocode_tool',
       arguments: {
         longitude: TEST_COORDINATES.SAN_FRANCISCO.longitude,
         latitude: TEST_COORDINATES.SAN_FRANCISCO.latitude,
@@ -110,7 +110,7 @@ export const MCP_REQUESTS = {
     id: 'test-directions',
     method: 'tools/call',
     params: {
-      name: 'MapboxDirections',
+      name: 'directions_tool',
       arguments: {
         coordinates: COORDINATE_ARRAYS.SF_LOCAL.slice(0, 2),
         profile: 'driving'
@@ -123,7 +123,7 @@ export const MCP_REQUESTS = {
     id: 'test-poi',
     method: 'tools/call',
     params: {
-      name: 'MapboxPoiSearch',
+      name: 'poi_search_tool',
       arguments: {
         q: 'coffee',
         proximity: TEST_COORDINATES.SAN_FRANCISCO,
@@ -171,7 +171,7 @@ export const INVALID_MCP_REQUESTS = {
     id: 'test-invalid',
     method: 'tools/call',
     params: {
-      name: 'MapboxGeocodingForward',
+      name: 'forward_geocode_tool',
       arguments: {} // Missing required 'q' parameter
     }
   }
@@ -187,7 +187,7 @@ export const MCP_RESPONSES = {
     result: {
       tools: [
         {
-          name: 'MapboxGeocodingForward',
+          name: 'forward_geocode_tool',
           description: 'Forward geocoding tool',
           inputSchema: {
             type: 'object',

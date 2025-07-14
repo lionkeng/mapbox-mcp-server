@@ -346,14 +346,14 @@ describe('MCP Protocol Integration Tests', () => {
       expect(result.tools.length).toBe(8); // All 8 Mapbox tools
 
       const expectedTools = [
-        'MapboxMatrix',
-        'MapboxGeocodingReverse',
-        'MapboxGeocodingForward',
-        'MapboxIsochrone',
-        'MapboxPoiSearch',
-        'MapboxCategorySearch',
-        'MapboxStaticMap',
-        'MapboxDirections'
+        'matrix_tool',
+        'reverse_geocode_tool',
+        'forward_geocode_tool',
+        'isochrone_tool',
+        'poi_search_tool',
+        'category_search_tool',
+        'static_map_image_tool',
+        'directions_tool'
       ];
 
       const toolNames = result.tools.map((tool: McpTool) => tool.name);
@@ -557,7 +557,7 @@ describe('MCP Protocol Integration Tests', () => {
           id: 'test',
           method: 'tools/call',
           params: {
-            name: 'MapboxGeocodingForward',
+            name: 'forward_geocode_tool',
             arguments: { q: 123, limit: 'invalid' } // Invalid types
           }
         })

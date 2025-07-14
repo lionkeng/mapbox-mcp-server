@@ -8,10 +8,8 @@ import 'dotenv/config';
 
 import jwt from 'jsonwebtoken';
 import { HttpServer, HttpServerConfig } from '../server/httpServer.js';
-import {
-  registerMcpTransport,
-  createMcpServer
-} from '../server/mcpHttpTransport.js';
+import { registerMcpTransport } from '../server/mcpHttpTransport.js';
+import { createMcpServer } from '../server/mcpServerFactory.js';
 
 // Validate environment variables
 const requiredVars = ['MAPBOX_ACCESS_TOKEN', 'JWT_SECRET'];
@@ -54,7 +52,7 @@ describe('End-to-End Workflow Tests', () => {
     const fastify = await httpServer.initialize();
 
     // Register MCP transport
-    const mcpServer = await createMcpServer();
+    const mcpServer = await createMcpServer({ enableLogging: false });
     await registerMcpTransport(fastify, mcpServer);
 
     // Start the server
@@ -167,7 +165,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(listData.result.tools.length).toBe(8);
 
       // Step 3: Call a tool
-      const toolResponse = await callHttpTool('MapboxGeocodingForward', {
+      const toolResponse = await callHttpTool('forward_geocode_tool', {
         q: 'San Francisco, CA',
         limit: 1
       });
@@ -183,7 +181,7 @@ describe('End-to-End Workflow Tests', () => {
   describe('Travel Planning Workflow', () => {
     it('should complete travel planning: geocode → directions → isochrone → static map', async () => {
       // Step 1: Geocode starting point
-      const geocodeResponse = await callHttpTool('MapboxGeocodingForward', {
+      const geocodeResponse = await callHttpTool('forward_geocode_tool', {
         q: 'Golden Gate Bridge, San Francisco, CA',
         limit: 1
       });
@@ -194,7 +192,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(geocodeData.result).toBeDefined();
 
       // Step 2: Get directions from bridge to downtown
-      const directionsResponse = await callHttpTool('MapboxDirections', {
+      const directionsResponse = await callHttpTool('directions_tool', {
         coordinates: [
           [-122.4783, 37.8199], // Golden Gate Bridge
           [-122.4194, 37.7749] // Downtown SF
@@ -208,7 +206,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(directionsData.result).toBeDefined();
 
       // Step 3: Generate isochrone from starting point
-      const isochroneResponse = await callHttpTool('MapboxIsochrone', {
+      const isochroneResponse = await callHttpTool('isochrone_tool', {
         coordinates: { longitude: -122.4783, latitude: 37.8199 },
         contours_minutes: [10, 20],
         profile: 'mapbox/driving',
@@ -221,7 +219,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(isochroneData.result).toBeDefined();
 
       // Step 4: Create static map of the area
-      const mapResponse = await callHttpTool('MapboxStaticMap', {
+      const mapResponse = await callHttpTool('static_map_image_tool', {
         center: { longitude: -122.4783, latitude: 37.8199 },
         zoom: 12,
         size: { width: 400, height: 300 },
@@ -240,7 +238,7 @@ describe('End-to-End Workflow Tests', () => {
       const coordinates = { longitude: -122.4194, latitude: 37.7749 }; // Downtown SF
 
       // Step 1: Reverse geocode to understand the location
-      const reverseResponse = await callHttpTool('MapboxGeocodingReverse', {
+      const reverseResponse = await callHttpTool('reverse_geocode_tool', {
         longitude: coordinates.longitude,
         latitude: coordinates.latitude,
         limit: 1
@@ -252,7 +250,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(reverseData.result).toBeDefined();
 
       // Step 2: Search for nearby coffee shops
-      const poiResponse = await callHttpTool('MapboxPoiSearch', {
+      const poiResponse = await callHttpTool('poi_search_tool', {
         q: 'coffee',
         proximity: coordinates,
         limit: 5
@@ -264,7 +262,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(poiData.result).toBeDefined();
 
       // Step 3: Search for restaurants by category
-      const categoryResponse = await callHttpTool('MapboxCategorySearch', {
+      const categoryResponse = await callHttpTool('category_search_tool', {
         category: 'restaurant',
         proximity: coordinates,
         limit: 5
@@ -286,7 +284,7 @@ describe('End-to-End Workflow Tests', () => {
       ];
 
       // Step 1: Calculate distance/time matrix
-      const matrixResponse = await callHttpTool('MapboxMatrix', {
+      const matrixResponse = await callHttpTool('matrix_tool', {
         coordinates: locations,
         profile: 'driving'
       });
@@ -297,7 +295,7 @@ describe('End-to-End Workflow Tests', () => {
       expect(matrixData.result).toBeDefined();
 
       // Step 2: Get detailed directions for the shortest route
-      const directionsResponse = await callHttpTool('MapboxDirections', {
+      const directionsResponse = await callHttpTool('directions_tool', {
         coordinates: [
           [locations[0].longitude, locations[0].latitude],
           [locations[1].longitude, locations[1].latitude]
@@ -319,22 +317,22 @@ describe('End-to-End Workflow Tests', () => {
 
       // Execute multiple tools concurrently
       const promises = [
-        callHttpTool('MapboxGeocodingReverse', {
+        callHttpTool('reverse_geocode_tool', {
           longitude: coordinates.longitude,
           latitude: coordinates.latitude,
           limit: 1
         }),
-        callHttpTool('MapboxPoiSearch', {
+        callHttpTool('poi_search_tool', {
           q: 'restaurant',
           proximity: coordinates,
           limit: 3
         }),
-        callHttpTool('MapboxCategorySearch', {
+        callHttpTool('category_search_tool', {
           category: 'shopping',
           proximity: coordinates,
           limit: 3
         }),
-        callHttpTool('MapboxIsochrone', {
+        callHttpTool('isochrone_tool', {
           coordinates,
           contours_minutes: [15],
           profile: 'mapbox/walking',
@@ -362,18 +360,18 @@ describe('End-to-End Workflow Tests', () => {
       // Mix of valid and invalid requests
       const promises = [
         // Valid request
-        callHttpTool('MapboxGeocodingForward', {
+        callHttpTool('forward_geocode_tool', {
           q: 'San Francisco',
           limit: 1
         }),
         // Invalid request (bad coordinates)
-        callHttpTool('MapboxGeocodingReverse', {
+        callHttpTool('reverse_geocode_tool', {
           longitude: 200,
           latitude: 100,
           limit: 1
         }),
         // Valid request
-        callHttpTool('MapboxPoiSearch', {
+        callHttpTool('poi_search_tool', {
           q: 'coffee',
           proximity: validCoordinates,
           limit: 3
@@ -429,7 +427,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Test full access user
       const fullAccessResponse = await callHttpTool(
-        'MapboxDirections',
+        'directions_tool',
         {
           coordinates: [
             [-122.4194, 37.7749],
@@ -447,7 +445,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Test limited access user with allowed tool
       const allowedResponse = await callHttpTool(
-        'MapboxGeocodingForward',
+        'forward_geocode_tool',
         {
           q: 'San Francisco',
           limit: 1
@@ -462,7 +460,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Test limited access user with restricted tool
       const restrictedResponse = await callHttpTool(
-        'MapboxDirections',
+        'directions_tool',
         {
           coordinates: [
             [-122.4194, 37.7749],
@@ -487,7 +485,7 @@ describe('End-to-End Workflow Tests', () => {
 
       // Make 20 rapid requests
       const promises = Array.from({ length: 20 }, (_, i) =>
-        callHttpTool('MapboxGeocodingForward', {
+        callHttpTool('forward_geocode_tool', {
           q: `Test Query ${i}`,
           limit: 1
         })
@@ -525,20 +523,20 @@ describe('End-to-End Workflow Tests', () => {
       const testCases = [
         {
           name: 'Empty string query',
-          tool: 'MapboxGeocodingForward',
+          tool: 'forward_geocode_tool',
           args: { q: '', limit: 1 },
           expectError: true
         },
         {
           name: 'Zero coordinates',
-          tool: 'MapboxGeocodingReverse',
+          tool: 'reverse_geocode_tool',
           args: { longitude: 0, latitude: 0, limit: 1 },
           expectError: true // Should expect error for (0,0)
         },
         // Skipped: Mapbox API may return error for minimum zoom level in some environments
         // {
         //   name: 'Minimum zoom level',
-        //   tool: 'MapboxStaticMap',
+        //   tool: 'static_map_image_tool',
         //   args: {
         //     center: { longitude: -122.4194, latitude: 37.7749 },
         //     zoom: 1,
@@ -550,7 +548,7 @@ describe('End-to-End Workflow Tests', () => {
         // Skipped: Mapbox API may return error for maximum zoom level in some environments
         // {
         //   name: 'Maximum zoom level',
-        //   tool: 'MapboxStaticMap',
+        //   tool: 'static_map_image_tool',
         //   args: {
         //     center: { longitude: -122.4194, latitude: 37.7749 },
         //     zoom: 22,
@@ -561,7 +559,7 @@ describe('End-to-End Workflow Tests', () => {
         // },
         {
           name: 'Single coordinate for matrix',
-          tool: 'MapboxMatrix',
+          tool: 'matrix_tool',
           args: {
             coordinates: [{ longitude: -122.4194, latitude: 37.7749 }],
             profile: 'driving'
@@ -602,7 +600,7 @@ describe('End-to-End Workflow Tests', () => {
   describe('Resource Cleanup', () => {
     it('should handle server shutdown behavior correctly', async () => {
       // Make some requests
-      const response1 = await callHttpTool('MapboxGeocodingForward', {
+      const response1 = await callHttpTool('forward_geocode_tool', {
         q: 'San Francisco',
         limit: 1
       });

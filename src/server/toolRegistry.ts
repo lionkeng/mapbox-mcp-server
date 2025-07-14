@@ -86,6 +86,18 @@ export class ToolRegistry {
    * Static mapping of tool names to their required permissions
    */
   private static readonly TOOL_PERMISSIONS: Record<string, string[]> = {
+    // Tool names from error logs - using actual tool.name values
+    forward_geocode_tool: ['mapbox:geocode'],
+    reverse_geocode_tool: ['mapbox:geocode'],
+    directions_tool: ['mapbox:directions'],
+    isochrone_tool: ['mapbox:isochrone'],
+    matrix_tool: ['mapbox:matrix'],
+    poi_search_tool: ['mapbox:poi'],
+    category_search_tool: ['mapbox:poi'],
+    static_map_image_tool: ['mapbox:static-images'],
+    version_tool: ['mapbox:info'],
+
+    // Legacy class names for backward compatibility
     MapboxGeocodingForward: ['mapbox:geocode'],
     MapboxGeocodingReverse: ['mapbox:geocode'],
     MapboxDirections: ['mapbox:directions'],

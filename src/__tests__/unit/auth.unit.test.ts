@@ -192,18 +192,18 @@ describe('Authentication Unit Tests', () => {
     const testCases = [
       {
         permissions: PERMISSION_SETS.GEOCODE_ONLY,
-        allowedTools: ['MapboxGeocodingForward', 'MapboxGeocodingReverse'],
-        deniedTools: ['MapboxDirections', 'MapboxPoiSearch']
+        allowedTools: ['forward_geocode_tool', 'reverse_geocode_tool'],
+        deniedTools: ['directions_tool', 'poi_search_tool']
       },
       {
         permissions: PERMISSION_SETS.DIRECTIONS_ONLY,
-        allowedTools: ['MapboxDirections'],
-        deniedTools: ['MapboxGeocodingForward', 'MapboxPoiSearch']
+        allowedTools: ['directions_tool'],
+        deniedTools: ['forward_geocode_tool', 'poi_search_tool']
       },
       {
         permissions: PERMISSION_SETS.POI_ONLY,
-        allowedTools: ['MapboxPoiSearch', 'MapboxCategorySearch'],
-        deniedTools: ['MapboxGeocodingForward', 'MapboxDirections']
+        allowedTools: ['poi_search_tool', 'category_search_tool'],
+        deniedTools: ['forward_geocode_tool', 'directions_tool']
       }
     ];
 
@@ -409,42 +409,42 @@ describe('Authentication Unit Tests', () => {
  */
 function getValidArgsForTool(toolName: string): Record<string, unknown> {
   const argMap: Record<string, Record<string, unknown>> = {
-    MapboxGeocodingForward: { q: 'San Francisco, CA', limit: 1 },
-    MapboxGeocodingReverse: {
+    forward_geocode_tool: { q: 'San Francisco, CA', limit: 1 },
+    reverse_geocode_tool: {
       longitude: -122.4194,
       latitude: 37.7749,
       limit: 1
     },
-    MapboxDirections: {
+    directions_tool: {
       coordinates: [
         [-122.4194, 37.7749],
         [-122.4094, 37.7849]
       ],
       profile: 'driving'
     },
-    MapboxPoiSearch: {
+    poi_search_tool: {
       q: 'coffee',
       proximity: { longitude: -122.4194, latitude: 37.7749 },
       limit: 5
     },
-    MapboxCategorySearch: {
+    category_search_tool: {
       category: 'restaurant',
       proximity: { longitude: -122.4194, latitude: 37.7749 },
       limit: 5
     },
-    MapboxMatrix: {
+    matrix_tool: {
       coordinates: [
         { longitude: -122.4194, latitude: 37.7749 },
         { longitude: -122.4094, latitude: 37.7849 }
       ],
       profile: 'driving'
     },
-    MapboxIsochrone: {
+    isochrone_tool: {
       coordinates: { longitude: -122.4194, latitude: 37.7749 },
       contours_minutes: [10],
       profile: 'mapbox/driving'
     },
-    MapboxStaticMap: {
+    static_map_image_tool: {
       center: { longitude: -122.4194, latitude: 37.7749 },
       zoom: 12,
       size: { width: 300, height: 200 },

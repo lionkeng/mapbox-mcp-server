@@ -5,10 +5,8 @@
 
 import fastify, { FastifyInstance } from 'fastify';
 import { HttpServer, HttpServerConfig } from '../../server/httpServer.js';
-import {
-  registerMcpTransport,
-  createMcpServer
-} from '../../server/mcpHttpTransport.js';
+import { registerMcpTransport } from '../../server/mcpHttpTransport.js';
+import { createMcpServer } from '../../server/mcpServerFactory.js';
 import { TEST_SERVER_CONFIG } from './constants.js';
 
 /**
@@ -39,7 +37,7 @@ export async function buildTestApp(
   const app = await httpServer.initialize();
 
   // Register MCP transport
-  const mcpServer = await createMcpServer();
+  const mcpServer = await createMcpServer({ enableLogging: false });
   await registerMcpTransport(app, mcpServer);
 
   return app;
@@ -62,7 +60,7 @@ export async function buildTestServer(
   const app = await httpServer.initialize();
 
   // Register MCP transport
-  const mcpServer = await createMcpServer();
+  const mcpServer = await createMcpServer({ enableLogging: false });
   await registerMcpTransport(app, mcpServer);
 
   // Start the server

@@ -9,10 +9,8 @@ import 'dotenv/config';
 
 import jwt from 'jsonwebtoken';
 import { HttpServer, HttpServerConfig } from '../server/httpServer.js';
-import {
-  registerMcpTransport,
-  createMcpServer
-} from '../server/mcpHttpTransport.js';
+import { registerMcpTransport } from '../server/mcpHttpTransport.js';
+import { createMcpServer } from '../server/mcpServerFactory.js';
 
 // Store original environment variable values before any test pollution
 const ORIGINAL_MAPBOX_TOKEN = process.env.MAPBOX_ACCESS_TOKEN;
@@ -74,7 +72,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     const fastify = await httpServer.initialize();
 
     // Register MCP transport
-    const mcpServer = await createMcpServer();
+    const mcpServer = await createMcpServer({ enableLogging: false });
     await registerMcpTransport(fastify, mcpServer);
 
     // Start the server
@@ -146,14 +144,14 @@ describe('HTTP Endpoint Integration Tests', () => {
       expect(data.result.tools.length).toBe(8);
 
       const expectedTools = [
-        'MapboxMatrix',
-        'MapboxGeocodingReverse',
-        'MapboxGeocodingForward',
-        'MapboxIsochrone',
-        'MapboxPoiSearch',
-        'MapboxCategorySearch',
-        'MapboxStaticMap',
-        'MapboxDirections'
+        'matrix_tool',
+        'reverse_geocode_tool',
+        'forward_geocode_tool',
+        'isochrone_tool',
+        'poi_search_tool',
+        'category_search_tool',
+        'static_map_image_tool',
+        'directions_tool'
       ];
 
       const toolNames = data.result.tools.map((tool: any) => tool.name);
@@ -166,7 +164,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   describe('Geocoding Tools', () => {
     it('should handle forward geocoding with valid address', async () => {
-      const response = await callTool('MapboxGeocodingForward', {
+      const response = await callTool('forward_geocode_tool', {
         q: 'San Francisco, CA',
         limit: 1
       });
@@ -182,7 +180,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle forward geocoding with invalid parameters', async () => {
-      const response = await callTool('MapboxGeocodingForward', {
+      const response = await callTool('forward_geocode_tool', {
         // Missing required q parameter
         limit: 1
       });
@@ -195,7 +193,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle reverse geocoding with valid coordinates', async () => {
-      const response = await callTool('MapboxGeocodingReverse', {
+      const response = await callTool('reverse_geocode_tool', {
         longitude: -122.4194,
         latitude: 37.7749,
         limit: 1
@@ -212,7 +210,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle reverse geocoding with invalid coordinates', async () => {
-      const response = await callTool('MapboxGeocodingReverse', {
+      const response = await callTool('reverse_geocode_tool', {
         longitude: 200, // Invalid longitude
         latitude: 37.7749,
         limit: 1
@@ -228,7 +226,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   describe('Directions Tool', () => {
     it('should handle directions with valid coordinates', async () => {
-      const response = await callTool('MapboxDirections', {
+      const response = await callTool('directions_tool', {
         coordinates: [
           [-122.4194, 37.7749], // San Francisco
           [-122.4094, 37.7849] // Nearby point
@@ -247,7 +245,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle directions with invalid profile', async () => {
-      const response = await callTool('MapboxDirections', {
+      const response = await callTool('directions_tool', {
         coordinates: [
           [-122.4194, 37.7749],
           [-122.4094, 37.7849]
@@ -266,7 +264,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   describe('Isochrone Tool', () => {
     it('should handle isochrone with valid parameters', async () => {
-      const response = await callTool('MapboxIsochrone', {
+      const response = await callTool('isochrone_tool', {
         coordinates: { longitude: -122.4194, latitude: 37.7749 },
         contours_minutes: [5, 10],
         profile: 'mapbox/driving',
@@ -284,7 +282,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle isochrone with invalid coordinates', async () => {
-      const response = await callTool('MapboxIsochrone', {
+      const response = await callTool('isochrone_tool', {
         coordinates: { longitude: 200, latitude: 100 }, // Invalid coordinates
         contours_minutes: [5, 10],
         profile: 'mapbox/driving',
@@ -301,7 +299,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   describe('Matrix Tool', () => {
     it('should handle matrix with valid coordinates', async () => {
-      const response = await callTool('MapboxMatrix', {
+      const response = await callTool('matrix_tool', {
         coordinates: [
           { longitude: -122.4194, latitude: 37.7749 },
           { longitude: -122.4094, latitude: 37.7849 },
@@ -326,7 +324,7 @@ describe('HTTP Endpoint Integration Tests', () => {
         latitude: 37.7749 + i * 0.01
       }));
 
-      const response = await callTool('MapboxMatrix', {
+      const response = await callTool('matrix_tool', {
         coordinates: tooManyCoordinates,
         profile: 'driving'
       });
@@ -341,7 +339,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   describe('Search Tools', () => {
     it('should handle POI search with valid parameters', async () => {
-      const response = await callTool('MapboxPoiSearch', {
+      const response = await callTool('poi_search_tool', {
         q: 'coffee',
         proximity: { longitude: -122.4194, latitude: 37.7749 },
         limit: 5
@@ -358,7 +356,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle POI search with missing query', async () => {
-      const response = await callTool('MapboxPoiSearch', {
+      const response = await callTool('poi_search_tool', {
         proximity: { longitude: -122.4194, latitude: 37.7749 },
         limit: 5
       });
@@ -371,7 +369,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle category search with valid category', async () => {
-      const response = await callTool('MapboxCategorySearch', {
+      const response = await callTool('category_search_tool', {
         category: 'restaurant',
         proximity: { longitude: -122.4194, latitude: 37.7749 },
         limit: 5
@@ -388,7 +386,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle category search with invalid category', async () => {
-      const response = await callTool('MapboxCategorySearch', {
+      const response = await callTool('category_search_tool', {
         category: 'invalid_category',
         proximity: { longitude: -122.4194, latitude: 37.7749 },
         limit: 5
@@ -405,7 +403,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   describe('Static Map Tool', () => {
     it('should handle static map with valid parameters', async () => {
-      const response = await callTool('MapboxStaticMap', {
+      const response = await callTool('static_map_image_tool', {
         center: { longitude: -122.4194, latitude: 37.7749 },
         zoom: 12,
         size: { width: 300, height: 200 },
@@ -431,7 +429,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle static map with invalid dimensions', async () => {
-      const response = await callTool('MapboxStaticMap', {
+      const response = await callTool('static_map_image_tool', {
         center: { longitude: -122.4194, latitude: 37.7749 },
         zoom: 12,
         size: { width: 2000, height: 2000 }, // Too large
@@ -449,13 +447,13 @@ describe('HTTP Endpoint Integration Tests', () => {
   describe('Concurrent Operations', () => {
     it('should handle concurrent tool calls', async () => {
       const promises = [
-        callTool('MapboxGeocodingForward', { q: 'New York, NY', limit: 1 }),
-        callTool('MapboxGeocodingReverse', {
+        callTool('forward_geocode_tool', { q: 'New York, NY', limit: 1 }),
+        callTool('reverse_geocode_tool', {
           longitude: -74.0059,
           latitude: 40.7128,
           limit: 1
         }),
-        callTool('MapboxPoiSearch', {
+        callTool('poi_search_tool', {
           q: 'pizza',
           proximity: { longitude: -74.0059, latitude: 40.7128 },
           limit: 3
@@ -475,7 +473,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
     it('should handle stress test with multiple rapid requests', async () => {
       const promises = Array.from({ length: 10 }, (_, i) =>
-        callTool('MapboxGeocodingForward', {
+        callTool('forward_geocode_tool', {
           q: `Test ${i}`,
           limit: 1
         })
@@ -528,7 +526,7 @@ describe('HTTP Endpoint Integration Tests', () => {
           id: `req-${Math.floor(Math.random() * 1000)}`,
           method: 'tools/call',
           params: {
-            name: 'MapboxGeocodingForward',
+            name: 'forward_geocode_tool',
             arguments: { q: 'San Francisco, CA', limit: 1 }
           }
         })
@@ -555,7 +553,7 @@ describe('HTTP Endpoint Integration Tests', () => {
           id: `req-${Math.floor(Math.random() * 1000)}`,
           method: 'tools/call',
           params: {
-            name: 'MapboxDirections',
+            name: 'directions_tool',
             arguments: {
               coordinates: [
                 [-122.4194, 37.7749],
@@ -577,7 +575,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle malformed tool arguments', async () => {
-      const response = await callTool('MapboxGeocodingForward', {
+      const response = await callTool('forward_geocode_tool', {
         q: 123, // Should be string
         limit: 'invalid' // Should be number
       });
@@ -602,7 +600,7 @@ describe('HTTP Endpoint Integration Tests', () => {
     });
 
     it('should handle empty tool arguments', async () => {
-      const response = await callTool('MapboxGeocodingForward', {});
+      const response = await callTool('forward_geocode_tool', {});
 
       expect(response.status).toBe(200);
       const data = (await response.json()) as any;
@@ -613,7 +611,7 @@ describe('HTTP Endpoint Integration Tests', () => {
 
     it('should handle tool execution timeout gracefully', async () => {
       // This test verifies that the timeout mechanism is in place
-      const response = await callTool('MapboxGeocodingForward', {
+      const response = await callTool('forward_geocode_tool', {
         q: 'Test timeout behavior',
         limit: 1
       });
@@ -805,7 +803,7 @@ describe('HTTP Endpoint Integration Tests', () => {
               id: 'batch-2',
               method: 'tools/call',
               params: {
-                name: 'MapboxGeocodingForward',
+                name: 'forward_geocode_tool',
                 arguments: { q: 'San Francisco', limit: 1 }
               }
             }
@@ -846,7 +844,7 @@ describe('HTTP Endpoint Integration Tests', () => {
               id: 'req-2',
               method: 'tools/call',
               params: {
-                name: 'MapboxGeocodingForward',
+                name: 'forward_geocode_tool',
                 arguments: { q: 'New York', limit: 1 }
               }
             }

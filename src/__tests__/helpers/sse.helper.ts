@@ -112,7 +112,7 @@ export class SseConnection {
   async close(): Promise<void> {
     const errors: Error[] = [];
 
-    // Close the reader first
+    // Close the reader first - this will automatically handle the stream cleanup
     if (this.reader) {
       try {
         await this.reader.cancel();
@@ -120,10 +120,9 @@ export class SseConnection {
       } catch (error) {
         errors.push(new Error(`Error closing reader: ${error}`));
       }
-    }
-
-    // Cancel the response body
-    if (this.response?.body) {
+    } else if (this.response?.body) {
+      // Only cancel the response body if we don't have a reader
+      // (to avoid "ReadableStream is locked" errors)
       try {
         await this.response.body.cancel();
       } catch (error) {

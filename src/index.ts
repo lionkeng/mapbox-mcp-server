@@ -10,9 +10,7 @@ import { HttpServer } from './server/httpServer.js';
 import { registerMcpTransport } from './server/mcpHttpTransport.js';
 import { createMcpServer } from './server/mcpServerFactory.js';
 import { createStdioServer, StdioServer } from './server/stdioServer.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { getAllTools } from './tools/toolRegistry.js';
+import { toolRegistry } from './server/toolRegistry.js';
 import { patchGlobalFetch } from './utils/requestUtils.js';
 import { getVersionInfo } from './utils/versionUtils.js';
 import { validateEnvironment } from '@/config/environment.js';
@@ -20,6 +18,39 @@ import { configureTransport } from '@/transport/selector.js';
 import { isHttpTransport, HttpTransportConfig } from '@/types/transport.js';
 import { logStartup, logShutdown, serverLogger } from '@/utils/logger.js';
 import { setupGracefulShutdown } from '@/utils/shutdown.js';
+
+/**
+ * Configuration constants
+ */
+const CONFIG = {
+  TIMEOUTS: {
+    GRACEFUL_SHUTDOWN: 30000,
+    REQUEST_TIMEOUT: 30000
+  },
+  LIMITS: {
+    BODY_LIMIT: 1048576, // 1MB
+    MAX_REQUEST_SIZE: 1048576 // 1MB
+  },
+  LOGGING: {
+    DEFAULT_LEVEL: 'info'
+  }
+} as const;
+
+/**
+ * Gets tool count from registry
+ */
+function getToolCount(): number {
+  return toolRegistry.getToolCount();
+}
+
+/**
+ * Validates required environment variables
+ */
+function validateRequiredEnv(): void {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+}
 
 /**
  * Application main class
@@ -34,12 +65,13 @@ class MapboxMcpApplication {
   async initialize(): Promise<void> {
     // Setup graceful shutdown first
     setupGracefulShutdown({
-      timeout: 30000,
+      timeout: CONFIG.TIMEOUTS.GRACEFUL_SHUTDOWN,
       signals: ['SIGTERM', 'SIGINT', 'SIGUSR2']
     });
 
     // Validate environment
     validateEnvironment();
+    validateRequiredEnv();
 
     // Patch global fetch with version info
     const versionInfo = getVersionInfo();
@@ -56,20 +88,15 @@ class MapboxMcpApplication {
   /**
    * Starts the appropriate server based on transport configuration
    */
-  async start(): Promise<void> {
+  async start(): Promise<{ exitCode?: number; message?: string }> {
     const result = configureTransport();
 
     if (!result.success) {
-      // Handle help/version or errors
-      if (result.exitCode === 0) {
-        // Help or version - output and exit gracefully
-        console.log(result.error);
-        process.exit(0);
-      } else {
-        // Configuration error
-        console.error(result.error);
-        process.exit(result.exitCode);
-      }
+      // Return error information instead of exiting
+      return {
+        exitCode: result.exitCode,
+        message: result.error
+      };
     }
 
     const config = result.config;
@@ -79,6 +106,8 @@ class MapboxMcpApplication {
     } else {
       await this.startStdioServer();
     }
+
+    return {}; // Success
   }
 
   /**
@@ -94,8 +123,8 @@ class MapboxMcpApplication {
         ...config,
         jwtSecret: process.env.JWT_SECRET!,
         trustProxy: true,
-        requestTimeout: 30000,
-        bodyLimit: 1048576 // 1MB
+        requestTimeout: CONFIG.TIMEOUTS.REQUEST_TIMEOUT,
+        bodyLimit: CONFIG.LIMITS.BODY_LIMIT
       });
 
       // Initialize HTTP server (creates Fastify instance)
@@ -104,8 +133,8 @@ class MapboxMcpApplication {
       // Register MCP transport BEFORE starting the server
       await registerMcpTransport(fastify, mcpServer, {
         enableStreaming: true,
-        maxRequestSize: 1048576,
-        requestTimeout: 30000
+        maxRequestSize: CONFIG.LIMITS.MAX_REQUEST_SIZE,
+        requestTimeout: CONFIG.TIMEOUTS.REQUEST_TIMEOUT
       });
 
       // Now start the HTTP server
@@ -115,7 +144,7 @@ class MapboxMcpApplication {
         transport: 'http',
         port,
         host: config.host,
-        logLevel: process.env.LOG_LEVEL || 'info'
+        logLevel: process.env.LOG_LEVEL || CONFIG.LOGGING.DEFAULT_LEVEL
       });
 
       serverLogger.info('HTTP server ready', {
@@ -123,9 +152,7 @@ class MapboxMcpApplication {
         port,
         cors: config.enableCors,
         metrics: config.enableMetrics,
-        toolCount: (
-          await import('./server/toolRegistry.js')
-        ).toolRegistry.getToolCount()
+        toolCount: getToolCount()
       });
     } catch (error) {
       serverLogger.error('Failed to start HTTP server', { error });
@@ -144,14 +171,12 @@ class MapboxMcpApplication {
 
       logStartup({
         transport: 'stdio',
-        logLevel: process.env.LOG_LEVEL || 'info'
+        logLevel: process.env.LOG_LEVEL || CONFIG.LOGGING.DEFAULT_LEVEL
       });
 
       serverLogger.info('Stdio server ready', {
         pid: process.pid,
-        toolCount: (
-          await import('./server/toolRegistry.js')
-        ).toolRegistry.getToolCount()
+        toolCount: getToolCount()
       });
     } catch (error) {
       serverLogger.error('Failed to start stdio server', { error });
@@ -216,7 +241,20 @@ async function main(): Promise<void> {
 
   try {
     await app.initialize();
-    await app.start();
+    const result = await app.start();
+
+    // Handle exit conditions returned by start()
+    if (result.exitCode !== undefined) {
+      if (result.exitCode === 0) {
+        // Help or version - output and exit gracefully
+        console.log(result.message);
+        process.exit(0);
+      } else {
+        // Configuration error
+        console.error(result.message);
+        process.exit(result.exitCode);
+      }
+    }
   } catch (error) {
     serverLogger.fatal('Application failed to start', { error });
     process.exit(1);

@@ -78,6 +78,7 @@ export class HttpServer {
   private startTime: Date | null = null;
   private requestCount = 0;
   private eventLoopLag = 0;
+  private eventLoopLagInterval: NodeJS.Timeout | null = null;
 
   constructor(config: HttpServerConfig) {
     this.config = config;
@@ -391,12 +392,15 @@ export class HttpServer {
    * Measures event loop lag
    */
   private measureEventLoopLag(): void {
-    global.setInterval(() => {
+    this.eventLoopLagInterval = global.setInterval(() => {
       const start = process.hrtime.bigint();
       global.setImmediate(() => {
         this.eventLoopLag = Number(process.hrtime.bigint() - start) / 1e6;
       });
     }, 1000);
+
+    // Ensure the interval doesn't keep the process alive during tests
+    this.eventLoopLagInterval.unref();
   }
 
   /**
@@ -482,6 +486,12 @@ export class HttpServer {
    * Stops the HTTP server
    */
   async stop(): Promise<void> {
+    // Clean up the event loop lag interval
+    if (this.eventLoopLagInterval) {
+      clearInterval(this.eventLoopLagInterval);
+      this.eventLoopLagInterval = null;
+    }
+
     if (!this.fastify) {
       return;
     }

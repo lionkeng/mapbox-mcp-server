@@ -81,7 +81,7 @@ describe('Performance End-to-End Tests', () => {
       for (let i = 0; i < iterations; i++) {
         const startTime = Date.now();
 
-        const response = await callTool('MapboxGeocodingForward', {
+        const response = await callTool('forward_geocode_tool', {
           q: `Test Query ${i}`,
           limit: 1
         });
@@ -167,21 +167,21 @@ describe('Performance End-to-End Tests', () => {
     it('should handle mixed concurrent operations', async () => {
       const operations = [
         () =>
-          callTool('MapboxGeocodingForward', { q: 'San Francisco', limit: 1 }),
+          callTool('forward_geocode_tool', { q: 'San Francisco', limit: 1 }),
         () =>
-          callTool('MapboxGeocodingReverse', {
+          callTool('reverse_geocode_tool', {
             longitude: -122.4194,
             latitude: 37.7749,
             limit: 1
           }),
         () =>
-          callTool('MapboxPoiSearch', {
+          callTool('poi_search_tool', {
             q: 'coffee',
             proximity: { longitude: -122.4194, latitude: 37.7749 },
             limit: 3
           }),
         () =>
-          callTool('MapboxDirections', {
+          callTool('directions_tool', {
             coordinates: [
               [-122.4194, 37.7749],
               [-122.4094, 37.7849]
@@ -289,7 +289,7 @@ describe('Performance End-to-End Tests', () => {
       const largeQuery = 'San Francisco ' + 'x'.repeat(1000); // 1KB+ query
 
       const startTime = Date.now();
-      const response = await callTool('MapboxGeocodingForward', {
+      const response = await callTool('forward_geocode_tool', {
         q: largeQuery,
         limit: 1
       });
