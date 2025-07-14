@@ -5,9 +5,10 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { toolRegistry } from './toolRegistry.js';
 import { createLogger } from '@/utils/logger.js';
 import { registerCleanup } from '@/utils/shutdown.js';
+import { createMcpServer as createMcpServerFactory } from './mcpServerFactory.js';
+import { toolRegistry } from './toolRegistry.js';
 
 const logger = createLogger('stdio-server');
 
@@ -31,36 +32,6 @@ export class StdioServer {
   }
 
   /**
-   * Creates and configures the MCP server
-   */
-  private async createMcpServer(): Promise<McpServer> {
-    const server = new McpServer(
-      {
-        name: 'mapbox-mcp-server',
-        version: process.env.npm_package_version || '0.2.0'
-      },
-      {
-        capabilities: {
-          tools: {},
-          resources: {},
-          prompts: {},
-          logging: this.config.enableLogging ? {} : undefined
-        }
-      }
-    );
-
-    // Register all tools from the registry
-    await toolRegistry.registerWithMcpServer(server);
-
-    logger.info('MCP server created for stdio transport', {
-      toolCount: toolRegistry.getToolCount(),
-      logging: this.config.enableLogging
-    });
-
-    return server;
-  }
-
-  /**
    * Starts the stdio server
    */
   async start(): Promise<void> {
@@ -70,7 +41,11 @@ export class StdioServer {
 
     try {
       // Create MCP server
-      this.server = await this.createMcpServer();
+      this.server = await createMcpServerFactory({
+        enableLogging: this.config.enableLogging,
+        name: 'mapbox-mcp-server',
+        version: process.env.npm_package_version || '0.2.0'
+      });
 
       // Create stdio transport
       this.transport = new StdioServerTransport();

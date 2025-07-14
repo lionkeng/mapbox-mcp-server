@@ -7,11 +7,12 @@
 import 'dotenv/config';
 
 import { HttpServer } from './server/httpServer.js';
-import {
-  registerMcpTransport,
-  createMcpServer
-} from './server/mcpHttpTransport.js';
+import { registerMcpTransport } from './server/mcpHttpTransport.js';
+import { createMcpServer } from './server/mcpServerFactory.js';
 import { createStdioServer, StdioServer } from './server/stdioServer.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { getAllTools } from './tools/toolRegistry.js';
 import { patchGlobalFetch } from './utils/requestUtils.js';
 import { getVersionInfo } from './utils/versionUtils.js';
 import { validateEnvironment } from '@/config/environment.js';
@@ -86,7 +87,7 @@ class MapboxMcpApplication {
   private async startHttpServer(config: HttpTransportConfig): Promise<void> {
     try {
       // Create MCP server with tools
-      const mcpServer = await createMcpServer();
+      const mcpServer = await createMcpServer({ enableLogging: true });
 
       // Create HTTP server
       this.httpServer = new HttpServer({

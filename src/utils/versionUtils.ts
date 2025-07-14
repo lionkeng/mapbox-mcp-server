@@ -31,26 +31,27 @@ export function getVersionInfo(): VersionInfo {
 function tryVersionJson(name: string): VersionInfo | null {
   try {
     const dirname = path.dirname(fileURLToPath(import.meta.url));
-    const possiblePaths = [
-      path.resolve(dirname, '..', 'version.json'),
-      path.resolve(dirname, '..', '..', 'version.json'),
-      path.resolve(process.cwd(), 'version.json'),
-      path.resolve(process.cwd(), 'dist', 'version.json')
-    ];
 
-    for (const filePath of possiblePaths) {
-      if (existsSync(filePath)) {
-        const data = readFileSync(filePath, 'utf-8');
-        const info = JSON.parse(data) as Partial<VersionInfo>;
+    // Try to read from version.json first (for build artifacts)
+    const versionJsonPath = path.resolve(dirname, '..', 'version.json');
+    try {
+      const versionData = readFileSync(versionJsonPath, 'utf-8');
+      let info = JSON.parse(versionData) as VersionInfo;
+      info['name'] = name;
+      return info;
+    } catch {
+      // Fall back to package.json
+      const packageJsonPath = path.resolve(dirname, '..', '..', 'package.json');
+      const packageData = readFileSync(packageJsonPath, 'utf-8');
+      const packageInfo = JSON.parse(packageData);
 
-        return {
-          name,
-          version: info.version || '0.0.0',
-          sha: info.sha || 'unknown',
-          tag: info.tag || 'unknown',
-          branch: info.branch || 'unknown'
-        };
-      }
+      return {
+        name: name,
+        version: packageInfo.version || '0.0.0',
+        sha: 'unknown',
+        tag: 'unknown',
+        branch: 'unknown'
+      };
     }
   } catch (error) {
     // Continue to next strategy

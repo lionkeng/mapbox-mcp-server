@@ -5,7 +5,12 @@ module.exports = function (plop) {
             {
                 type: 'input',
                 name: 'name',
-                message: 'Tool name without suffix using PascalCase e.g. Search:',
+                message: 'Tool class name without suffix using PascalCase e.g. Search:',
+            },            
+            {
+                type: 'input',
+                name: 'toolName',
+                message: 'Tool name property in snake_case. Must end with _tool e.g. search_tool:',
             },
         ],
         actions: [
@@ -21,15 +26,15 @@ module.exports = function (plop) {
             },
             {
                 type: 'append',
-                path: 'src/index.ts',
-                pattern: /(\/\/ INSERT NEW TOOL REGISTRATION HERE)/,
-                template: 'new {{pascalCase name}}Tool().installTo(server);',
+                path: 'src/tools/toolRegistry.ts',
+                pattern: /(\/\/ INSERT NEW TOOL IMPORT HERE)/,
+                template: "import { {{pascalCase name}}Tool } from './{{kebabCase name}}-tool/{{pascalCase name}}Tool.js';",
             },
             {
                 type: 'append',
-                path: 'src/index.ts',
-                pattern: /(\/\/ INSERT NEW TOOL IMPORT HERE)/,
-                template: "import { {{pascalCase name}}Tool } from './tools/{{kebabCase name}}-tool/{{pascalCase name}}Tool.js';",
+                path: 'src/tools/toolRegistry.ts',
+                pattern: /(\/\/ INSERT NEW TOOL INSTANCE HERE)/,
+                template: '  new {{pascalCase name}}Tool(),',
             },
             {
                 type: 'append',

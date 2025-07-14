@@ -1224,32 +1224,3 @@ export async function registerMcpTransport(
 
   return transport;
 }
-
-/**
- * Creates a new MCP server instance with tools registered
- */
-export async function createMcpServer(): Promise<McpServer> {
-  const server = new McpServer(
-    {
-      name: 'mapbox-mcp-server',
-      version: process.env.npm_package_version || '0.2.0'
-    },
-    {
-      capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {},
-        logging: {}
-      }
-    }
-  );
-
-  // Register all tools from the registry
-  await toolRegistry.registerWithMcpServer(server);
-
-  logger.info('MCP server created with tools', {
-    toolCount: toolRegistry.getToolCount()
-  });
-
-  return server;
-}
