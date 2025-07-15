@@ -16,6 +16,7 @@ import { toolRegistry, ToolExecutionContext } from './toolRegistry.js';
 import { createLogger, PerformanceLogger } from '@/utils/logger.js';
 import { ValidationError } from '@/utils/errors.js';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import crypto from 'node:crypto';
 
 /**
@@ -577,11 +578,50 @@ class FastifyStreamableTransport implements Transport {
     context: McpRequestContext,
     _mcpServer: McpServer
   ): Promise<JSONRPCResponse> {
-    const tools = toolRegistry.listTools().map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema
-    }));
+    const tools = toolRegistry.listTools().map((tool) => {
+      // Convert Zod schema to JSON Schema if it's a Zod schema
+      let inputSchema = tool.inputSchema;
+
+      if (
+        typeof tool.inputSchema === 'object' &&
+        tool.inputSchema !== null &&
+        'parse' in tool.inputSchema
+      ) {
+        // It's a Zod schema, convert to JSON Schema
+        try {
+          const jsonSchema = zodToJsonSchema(tool.inputSchema as z.ZodTypeAny, {
+            name: `${tool.name}Input`,
+            $refStrategy: 'none'
+          });
+
+          // If the result has a $ref, resolve it to the actual schema
+          const schemaWithRef = jsonSchema as any;
+          if (schemaWithRef.$ref && schemaWithRef.definitions) {
+            const refKey = schemaWithRef.$ref.replace('#/definitions/', '');
+            inputSchema = schemaWithRef.definitions[refKey] || jsonSchema;
+          } else {
+            inputSchema = jsonSchema;
+          }
+        } catch (error) {
+          logger.warn('Failed to convert Zod schema to JSON Schema', {
+            toolName: tool.name,
+            error: error instanceof Error ? error.message : error
+          });
+          // Fallback to a basic object schema
+          inputSchema = {
+            type: 'object',
+            properties: {},
+            additionalProperties: true
+          };
+        }
+      }
+
+      return {
+        name: tool.name,
+        description: tool.description,
+        inputSchema
+      };
+    });
 
     logger.debug('Listed tools', {
       count: tools.length,

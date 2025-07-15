@@ -17,6 +17,7 @@
     "prepare": "husky && node .husky/setup-hooks.js",
     "test": "jest",
     "dev": "node dist/index.js --http",
+    "test:client": "npx tsx scripts/client.ts",
     "build": "npm run prepare && npm run build:esm && npm run build:cjs && npm run generate-version && node scripts/add-shebang.cjs",
     "build:esm": "node scripts/build-helpers.cjs esm-package && tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "build:cjs": "node scripts/build-helpers.cjs cjs-package && tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
@@ -86,6 +87,7 @@
     "jsonwebtoken": "^9.0.2",
     "pino": "^9.0.0",
     "undici": "^6.0.0",
-    "zod": "^3.25.42"
+    "zod": "^3.25.42",
+    "zod-to-json-schema": "^3.24.6"
   }
 }
