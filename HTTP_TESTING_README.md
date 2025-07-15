@@ -19,12 +19,31 @@ The Mapbox MCP Server exposes all its tools via an HTTP endpoint that implements
 The easiest way to test the HTTP endpoint is using the provided test script:
 
 ```bash
-# Set environment variables
+# Option 1: Using npm script (loads .env automatically)
+npm run test:http
+
+# Option 2: Set environment variables inline
+MAPBOX_ACCESS_TOKEN="your_mapbox_token_here" JWT_SECRET="your_jwt_secret_here" npm run test:http
+
+# Option 3: Export environment variables then run
 export MAPBOX_ACCESS_TOKEN="your_mapbox_token_here"
 export JWT_SECRET="your_jwt_secret_here"
+npm run test:http
 
-# Run the test script
-node test-http-endpoint.js
+# Option 4: Run script directly
+node scripts/test-http-endpoint.js
+```
+
+**Note**: The script automatically loads environment variables from a `.env` file in the project root if it exists.
+
+### Available Scripts
+
+The following npm scripts are available for testing:
+
+```bash
+npm run test:http          # Run HTTP endpoint test script
+npm run test              # Run full Jest test suite
+npm run test:client       # Run MCP client tests
 ```
 
 This script will:
@@ -93,16 +112,16 @@ Comprehensive error and edge case testing:
 
 The HTTP endpoint provides access to all 8 Mapbox tools:
 
-| Tool                     | Endpoint          | Description                                              |
-| ------------------------ | ----------------- | -------------------------------------------------------- |
-| `MapboxGeocodingForward` | Forward geocoding | Convert addresses to coordinates                         |
-| `MapboxGeocodingReverse` | Reverse geocoding | Convert coordinates to addresses                         |
-| `MapboxDirections`       | Directions API    | Get routing directions between points                    |
-| `MapboxIsochrone`        | Isochrone API     | Generate travel time polygons                            |
-| `MapboxMatrix`           | Matrix API        | Calculate travel times/distances between multiple points |
-| `MapboxPoiSearch`        | POI Search        | Search for points of interest                            |
-| `MapboxCategorySearch`   | Category Search   | Search by business category                              |
-| `MapboxStaticMap`        | Static Images     | Generate static map images                               |
+| Tool                  | Tool Name               | Description                                              |
+| --------------------- | ----------------------- | -------------------------------------------------------- |
+| **Forward Geocoding** | `forward_geocode_tool`  | Convert addresses to coordinates                         |
+| **Reverse Geocoding** | `reverse_geocode_tool`  | Convert coordinates to addresses                         |
+| **Directions**        | `directions_tool`       | Get routing directions between points                    |
+| **Isochrone**         | `isochrone_tool`        | Generate travel time polygons                            |
+| **Matrix**            | `matrix_tool`           | Calculate travel times/distances between multiple points |
+| **POI Search**        | `poi_search_tool`       | Search for points of interest                            |
+| **Category Search**   | `category_search_tool`  | Search by business category                              |
+| **Static Map Images** | `static_map_image_tool` | Generate static map images                               |
 
 ## Test Utilities
 
@@ -127,15 +146,15 @@ const httpTestConfig = {
 };
 
 // Test a tool
-const response = await callHttpTool(httpTestConfig, 'MapboxGeocodingForward', {
-  query: 'San Francisco, CA',
+const response = await callHttpTool(httpTestConfig, 'forward_geocode_tool', {
+  q: 'San Francisco, CA',
   limit: 1
 });
 
 // Use predefined test data
 const response = await callHttpTool(
   httpTestConfig,
-  'MapboxDirections',
+  'directions_tool',
   testData.directions.valid
 );
 ```
@@ -211,10 +230,8 @@ const response = await callHttpTool(httpTestConfig, 'tool_name', args, token);
 
 ```javascript
 import { HttpServer } from './src/server/httpServer.js';
-import {
-  registerMcpTransport,
-  createMcpServer
-} from './src/server/mcpHttpTransport.js';
+import { registerMcpTransport } from './src/server/mcpHttpTransport.js';
+import { createMcpServer } from './src/server/mcpServerFactory.js';
 import { callHttpTool } from './src/utils/requestUtils.testHelpers.js';
 
 // Start server
@@ -234,8 +251,8 @@ const httpTestConfig = {
 };
 
 // Call a tool
-const response = await callHttpTool(httpTestConfig, 'MapboxGeocodingForward', {
-  query: 'San Francisco, CA',
+const response = await callHttpTool(httpTestConfig, 'forward_geocode_tool', {
+  q: 'San Francisco, CA',
   limit: 1
 });
 
@@ -252,9 +269,9 @@ await httpServer.stop();
 // Test invalid parameters
 const errorResponse = await callHttpTool(
   httpTestConfig,
-  'MapboxGeocodingForward',
+  'forward_geocode_tool',
   {
-    query: 123, // Should be string
+    q: 123, // Should be string
     limit: 'invalid' // Should be number
   }
 );
@@ -269,18 +286,18 @@ console.log(errorData.error.message); // Descriptive error message
 ```javascript
 // Test multiple tools concurrently
 const promises = [
-  callHttpTool(config, 'MapboxGeocodingForward', { query: 'NYC', limit: 1 }),
-  callHttpTool(config, 'MapboxPoiSearch', {
-    query: 'coffee',
-    proximity: [-74, 40],
+  callHttpTool(config, 'forward_geocode_tool', { q: 'NYC', limit: 1 }),
+  callHttpTool(config, 'poi_search_tool', {
+    q: 'coffee',
+    proximity: { longitude: -74, latitude: 40 },
     limit: 3
   }),
-  callHttpTool(config, 'MapboxDirections', {
+  callHttpTool(config, 'directions_tool', {
     coordinates: [
       [-74, 40],
       [-73, 41]
     ],
-    profile: 'driving'
+    routing_profile: 'driving'
   })
 ];
 
@@ -326,7 +343,7 @@ LOG_LEVEL=info
 Enable debug logging:
 
 ```bash
-LOG_LEVEL=debug node test-http-endpoint.js
+LOG_LEVEL=debug npm run test:http
 ```
 
 ## Integration with CI/CD

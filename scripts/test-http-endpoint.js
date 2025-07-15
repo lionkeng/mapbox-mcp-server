@@ -4,21 +4,32 @@
  * Simple test script to demonstrate HTTP endpoint testing
  *
  * Usage:
- *   MAPBOX_ACCESS_TOKEN=your_token JWT_SECRET=your_secret node test-http-endpoint.js
+ *   MAPBOX_ACCESS_TOKEN=your_token JWT_SECRET=your_secret node scripts/test-http-endpoint.js
+ *   OR
+ *   npm run test:http (requires .env file with MAPBOX_ACCESS_TOKEN and JWT_SECRET)
  *
  * This script demonstrates how to test all MCP Server tools via the HTTP endpoint.
  */
 
-import { HttpServer } from './dist/server/httpServer.js';
-import {
-  registerMcpTransport,
-  createMcpServer
-} from './dist/server/mcpHttpTransport.js';
+// Load environment variables from .env file before importing other modules
+import { config } from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from project root
+config({ path: path.join(__dirname, '..', '.env') });
+
+import { HttpServer } from '../dist/server/httpServer.js';
+import { registerMcpTransport } from '../dist/server/mcpHttpTransport.js';
+import { createMcpServer } from '../dist/server/mcpServerFactory.js';
 import {
   callHttpTool,
   listHttpTools,
   initializeHttpMcp
-} from './dist/utils/requestUtils.testHelpers.js';
+} from '../dist/utils/requestUtils.testHelpers.js';
 
 // Configuration
 const TEST_CONFIG = {
@@ -95,74 +106,73 @@ async function testHttpEndpoint() {
 
     const toolTests = [
       {
-        name: 'mapbox_geocoding_forward',
-        args: { query: 'San Francisco, CA', limit: 1 },
+        name: 'forward_geocode_tool',
+        args: { q: 'San Francisco, CA', limit: 1 },
         description: 'Forward geocoding'
       },
       {
-        name: 'mapbox_geocoding_reverse',
+        name: 'reverse_geocode_tool',
         args: { longitude: -122.4194, latitude: 37.7749, limit: 1 },
         description: 'Reverse geocoding'
       },
       {
-        name: 'mapbox_directions',
+        name: 'directions_tool',
         args: {
           coordinates: [
             [-122.4194, 37.7749],
             [-122.4094, 37.7849]
           ],
-          profile: 'driving'
+          routing_profile: 'driving'
         },
         description: 'Directions'
       },
       {
-        name: 'mapbox_isochrone',
+        name: 'isochrone_tool',
         args: {
-          coordinates: [-122.4194, 37.7749],
+          profile: 'mapbox/driving',
+          coordinates: { longitude: -122.4194, latitude: 37.7749 },
           contours_minutes: [10],
-          profile: 'driving'
+          generalize: 0
         },
         description: 'Isochrone'
       },
       {
-        name: 'mapbox_matrix',
+        name: 'matrix_tool',
         args: {
           coordinates: [
-            [-122.4194, 37.7749],
-            [-122.4094, 37.7849],
-            [-122.3994, 37.7949]
+            { longitude: -122.4194, latitude: 37.7749 },
+            { longitude: -122.4094, latitude: 37.7849 },
+            { longitude: -122.3994, latitude: 37.7949 }
           ],
           profile: 'driving'
         },
         description: 'Matrix'
       },
       {
-        name: 'mapbox_poi_search',
+        name: 'poi_search_tool',
         args: {
-          query: 'coffee',
-          proximity: [-122.4194, 37.7749],
+          q: 'coffee',
+          proximity: { longitude: -122.4194, latitude: 37.7749 },
           limit: 3
         },
         description: 'POI search'
       },
       {
-        name: 'mapbox_category_search',
+        name: 'category_search_tool',
         args: {
           category: 'restaurant',
-          proximity: [-122.4194, 37.7749],
+          proximity: { longitude: -122.4194, latitude: 37.7749 },
           limit: 3
         },
         description: 'Category search'
       },
       {
-        name: 'mapbox_static_map',
+        name: 'static_map_image_tool',
         args: {
-          longitude: -122.4194,
-          latitude: 37.7749,
+          center: { longitude: -122.4194, latitude: 37.7749 },
           zoom: 12,
-          width: 300,
-          height: 200,
-          style: 'mapbox://styles/mapbox/streets-v11'
+          size: { width: 300, height: 200 },
+          style: 'mapbox/streets-v12'
         },
         description: 'Static map'
       }
@@ -221,9 +231,9 @@ async function testHttpEndpoint() {
     try {
       const invalidResponse = await callHttpTool(
         httpTestConfig,
-        'mapbox_geocoding_forward',
+        'forward_geocode_tool',
         {
-          query: 123, // Should be string
+          q: 123, // Should be string
           limit: 1
         }
       );
@@ -269,7 +279,7 @@ async function testHttpEndpoint() {
 if (!process.env.MAPBOX_ACCESS_TOKEN) {
   console.error('❌ MAPBOX_ACCESS_TOKEN environment variable is required');
   console.log(
-    'Usage: MAPBOX_ACCESS_TOKEN=your_token JWT_SECRET=your_secret node test-http-endpoint.js'
+    'Usage: MAPBOX_ACCESS_TOKEN=your_token JWT_SECRET=your_secret node scripts/test-http-endpoint.js'
   );
   process.exit(1);
 }
