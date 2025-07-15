@@ -1,22 +1,65 @@
-# HTTP Endpoint Testing for Mapbox MCP Server
+# MCP Server Testing Guide for Mapbox MCP Server
 
-This document provides a comprehensive guide for testing the HTTP endpoint of the Mapbox MCP Server, ensuring all 8 MCP tools are properly tested through the streamable HTTP interface.
+This document provides a comprehensive guide for testing the Mapbox MCP Server, covering both **MCP protocol level testing** (using the official SDK) and **HTTP endpoint testing** (using custom utilities). This ensures all 8 MCP tools are properly tested through multiple interfaces.
 
 ## Overview
 
 The Mapbox MCP Server exposes all its tools via an HTTP endpoint that implements the MCP (Model Context Protocol) over HTTP with JSON-RPC 2.0. This testing infrastructure provides complete coverage for:
 
 - **8 Mapbox Tools**: geocoding (forward/reverse), directions, isochrone, matrix, POI search, category search, static maps
+- **MCP Protocol Compliance**: Testing with official `@modelcontextprotocol/sdk` client
 - **Authentication**: JWT-based security with permission-based access control
 - **Error Handling**: Comprehensive error scenarios and edge cases
 - **Performance**: Concurrent requests and rate limiting
-- **Protocol Compliance**: Full MCP and JSON-RPC 2.0 compliance
+- **HTTP Transport**: Direct JSON-RPC 2.0 testing for debugging
 
 ## Quick Start
 
-### Method 1: Simple Test Script (Recommended)
+### Method 1: MCP Protocol Level Testing (Recommended for MCP Development)
 
-The easiest way to test the HTTP endpoint is using the provided test script:
+Test the server using the official MCP SDK client to verify protocol compliance:
+
+```bash
+# Option 1: Using npm script (loads .env automatically)
+npm run test:client
+
+# Option 2: Run TypeScript directly
+npx tsx scripts/client.ts
+
+# Option 3: Set environment variables inline
+MAPBOX_ACCESS_TOKEN="your_token" JWT_SECRET="your_secret" npx tsx scripts/client.ts
+```
+
+This MCP client test (`scripts/client.ts`) demonstrates:
+
+1. **Authentic MCP Client Connection**: Uses the official `@modelcontextprotocol/sdk` client
+2. **JWT Authentication**: Generates and uses proper JWT tokens
+3. **Protocol Compliance**: Tests actual MCP protocol methods (`listTools`, `callTool`)
+4. **Real Tool Calls**: Executes geocoding tools with real Mapbox API calls
+5. **Error Handling**: Shows how MCP clients handle validation and errors
+
+#### What the MCP Client Test Does:
+
+```typescript
+// Connects using official MCP SDK
+const client = new Client({ name: 'mcp-http-client', version: '1.0.0' });
+await client.connect(transport);
+
+// Lists all available tools
+const toolsResult = await client.listTools();
+
+// Calls tools using MCP protocol
+const geocodeResult = await client.callTool({
+  name: 'forward_geocode_tool',
+  arguments: { q: '1600 Pennsylvania Avenue, Washington DC' }
+});
+```
+
+This is the **most accurate way** to test your MCP server as it uses the same SDK that real MCP clients (like Claude Desktop) would use.
+
+### Method 2: Simple Test Script (HTTP Level Testing)
+
+Test the HTTP endpoint directly using custom HTTP utilities:
 
 ```bash
 # Option 1: Using npm script (loads .env automatically)
@@ -34,19 +77,19 @@ npm run test:http
 node scripts/test-http-endpoint.js
 ```
 
-**Note**: The script automatically loads environment variables from a `.env` file in the project root if it exists.
+**Note**: Both scripts automatically load environment variables from a `.env` file in the project root if it exists.
 
 ### Available Scripts
 
 The following npm scripts are available for testing:
 
 ```bash
+npm run test:client        # Run MCP SDK client test (recommended)
 npm run test:http          # Run HTTP endpoint test script
 npm run test              # Run full Jest test suite
-npm run test:client       # Run MCP client tests
 ```
 
-This script will:
+The HTTP test script will:
 
 1. Start an HTTP server
 2. Test MCP initialization
@@ -55,7 +98,7 @@ This script will:
 5. Test error handling
 6. Clean up and stop the server
 
-### Method 2: Comprehensive Test Suite
+### Method 3: Comprehensive Test Suite
 
 For more thorough testing, use the complete test suite:
 
@@ -107,6 +150,56 @@ Comprehensive error and edge case testing:
 - Permission errors
 - Rate limiting errors
 - Boundary value testing
+
+## MCP Client Testing Details
+
+The `scripts/client.ts` file provides a complete example of how to connect to your MCP server using the official SDK:
+
+### Key Features:
+
+- **StreamableHTTPClientTransport**: Uses the official MCP HTTP transport
+- **JWT Token Generation**: Creates properly formatted authentication tokens
+- **Error Handling**: Demonstrates graceful handling of MCP protocol errors
+- **Real API Calls**: Makes actual calls to Mapbox services
+
+### Example Output:
+
+```
+Available tools: [ 'matrix_tool', 'reverse_geocode_tool', 'forward_geocode_tool', 'isochrone_tool', 'poi_search_tool', 'category_search_tool', 'static_map_image_tool', 'directions_tool' ]
+
+Calling forward geocoding tool...
+Forward geocoding result: {
+  "content": [
+    {
+      "type": "text",
+      "text": "Address: 1600 Pennsylvania Avenue Northwest, Washington, District of Columbia 20500, United States\nCoordinates: -77.036133, 38.895111"
+    }
+  ]
+}
+
+Calling reverse geocoding tool...
+Reverse geocoding result: {
+  "content": [
+    {
+      "type": "text",
+      "text": "Address: 1600 Pennsylvania Avenue Northwest, Washington, District of Columbia 20500, United States"
+    }
+  ]
+}
+```
+
+### Prerequisites for MCP Client Testing:
+
+1. **Start your MCP server** (in another terminal):
+
+   ```bash
+   npm run dev  # Starts server on http://localhost:8080/mcp
+   ```
+
+2. **Run the MCP client test**:
+   ```bash
+   npm run test:client
+   ```
 
 ## Available Tools
 
@@ -328,6 +421,31 @@ JWT_SECRET=your-jwt-secret-at-least-32-characters-long
 LOG_LEVEL=info
 ```
 
+### Setting Up Environment Variables:
+
+1. **Create a `.env` file** in the project root:
+
+   ```bash
+   # Generate a secure JWT secret
+   openssl rand -base64 32
+
+   # Add to .env file
+   echo "MAPBOX_ACCESS_TOKEN=pk.your_actual_token_here" >> .env
+   echo "JWT_SECRET=your_generated_secret_here" >> .env
+   ```
+
+2. **Get a Mapbox access token** from https://account.mapbox.com/access-tokens/
+
+3. **Verify setup**:
+
+   ```bash
+   # Test MCP client connection
+   npm run test:client
+
+   # Test HTTP endpoint
+   npm run test:http
+   ```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -337,13 +455,25 @@ LOG_LEVEL=info
 3. **Permission errors**: Verify JWT contains required permissions for the tool
 4. **Rate limiting**: Add delays between rapid requests or use different API keys
 5. **Network timeouts**: Increase request timeout in server configuration
+6. **MCP Client connection issues**:
+   - Ensure server is running on `http://localhost:8080/mcp`
+   - Check that `npm run dev` is running in another terminal
+   - Verify JWT_SECRET is set and matches between client and server
+7. **Schema validation errors**: These are normal for `listTools()` due to Zod schema conversion - the individual `callTool()` operations should work fine
 
 ### Debug Mode
 
 Enable debug logging:
 
 ```bash
+# For MCP client testing
+LOG_LEVEL=debug npm run test:client
+
+# For HTTP endpoint testing
 LOG_LEVEL=debug npm run test:http
+
+# For server development
+LOG_LEVEL=debug npm run dev
 ```
 
 ## Integration with CI/CD
