@@ -4,6 +4,10 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ToolSchema } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
+
+type ClientToolSchema = z.infer<typeof ToolSchema>;
 
 // ES module compatibility for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -57,7 +61,14 @@ async function main() {
     const toolsResult = await client.listTools();
     console.log(
       'Available tools:',
-      toolsResult.tools.map((tool: any) => tool.name)
+      JSON.stringify(
+        toolsResult.tools.map((tool: ClientToolSchema) => ({
+          name: tool.name,
+          inputSchema: tool.inputSchema
+        })),
+        null,
+        2
+      )
     );
   } catch (error) {
     console.log(
@@ -100,6 +111,31 @@ async function main() {
     );
   } catch (error) {
     console.log('Error calling reverse geocoding tool:', error.message);
+  }
+
+  // Example: Call static map image tool
+  try {
+    console.log('\nCalling static map image tool...');
+    const staticMapResult = await client.callTool({
+      name: 'static_map_image_tool',
+      arguments: {
+        center: {
+          longitude: -77.036133,
+          latitude: 38.895111
+        },
+        size: {
+          width: 600,
+          height: 400
+        },
+        zoom: 14
+      }
+    });
+    console.log(
+      'Static map image result:',
+      JSON.stringify(staticMapResult, null, 2)
+    );
+  } catch (error) {
+    console.log('Error calling static map image tool:', error.message);
   }
 
   await client.close();
