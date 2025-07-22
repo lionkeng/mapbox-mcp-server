@@ -2,7 +2,9 @@
  * Tool registry for managing MCP tools across different transports
  * Provides a unified interface for registering and executing tools
  */
-
+import { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MapboxApiBasedTool } from '../tools/MapboxApiBasedTool.js';
 import { CategorySearchTool } from '../tools/category-search-tool/CategorySearchTool.js';
@@ -19,31 +21,11 @@ import { ValidationError } from '@/utils/errors.js';
 const logger = createLogger('tool-registry');
 
 /**
- * Tool input schema type (Zod schema or JSON schema)
+ * Tool execution function type
  */
-type ToolInputSchema =
-  | Record<string, unknown>
-  | {
-      parse: (input: unknown) => ToolInput;
-    };
-
-/**
- * Tool execution result
- */
-interface ToolExecutionResult {
-  content: Array<{
-    type: string;
-    text?: string;
-    [key: string]: unknown;
-  }>;
-  is_error?: boolean;
-  [key: string]: unknown;
-}
-
-/**
- * Tool input type - generic object with unknown properties
- */
-type ToolInput = Record<string, unknown>;
+type ToolExecuteFunction = (
+  input: Record<string, unknown>
+) => Promise<CallToolResult>;
 
 /**
  * Zod error issue type
@@ -55,14 +37,12 @@ interface ZodErrorIssue {
 }
 
 /**
- * Tool definition for the registry
+ * Internal tool info that extends MCP Tool with execution capability
  */
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  inputSchema: ToolInputSchema;
-  execute: (input: ToolInput) => Promise<ToolExecutionResult>;
-  permissions?: string[];
+interface InternalToolInfo {
+  tool: Tool;
+  execute: ToolExecuteFunction;
+  permissions: string[];
 }
 
 /**
@@ -79,8 +59,9 @@ export interface ToolExecutionContext {
  * Tool registry for managing MCP tools
  */
 export class ToolRegistry {
-  private tools = new Map<string, ToolDefinition>();
+  private tools = new Map<string, InternalToolInfo>();
   private toolInstances = new Map<string, MapboxApiBasedTool<any>>();
+  private toolExecutors = new Map<string, ToolExecuteFunction>();
 
   /**
    * Static mapping of tool names to their required permissions
@@ -153,19 +134,85 @@ export class ToolRegistry {
   /**
    * Registers a tool instance
    */
-  private registerToolInstance(tool: MapboxApiBasedTool<any>): void {
-    const toolDefinition: ToolDefinition = {
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-      execute: async (input: ToolInput) => {
-        return tool.run(input);
-      },
-      permissions: this.getToolPermissions(tool.name)
+  private registerToolInstance(toolInstance: MapboxApiBasedTool<any>): void {
+    // Convert Zod schema to JSON Schema for MCP compliance
+    const inputSchema = this.zodToJsonSchema(toolInstance.inputSchema);
+
+    // Create MCP-compliant Tool object
+    const tool: Tool = {
+      name: toolInstance.name,
+      description: toolInstance.description,
+      inputSchema
     };
 
-    this.tools.set(tool.name, toolDefinition);
-    this.toolInstances.set(tool.name, tool);
+    // Create execute function that converts result to CallToolResult
+    const execute: ToolExecuteFunction = async (
+      input: Record<string, unknown>
+    ) => {
+      const result = await toolInstance.run(input);
+      return this.convertToCallToolResult(result);
+    };
+
+    // Store tool info internally
+    const toolInfo: InternalToolInfo = {
+      tool,
+      execute,
+      permissions: this.getToolPermissions(toolInstance.name)
+    };
+
+    this.tools.set(toolInstance.name, toolInfo);
+    this.toolInstances.set(toolInstance.name, toolInstance);
+    this.toolExecutors.set(toolInstance.name, execute);
+  }
+
+  /**
+   * Converts Zod schema to JSON Schema format for MCP compliance
+   */
+  private zodToJsonSchema(zodSchema: z.ZodTypeAny): {
+    type: 'object';
+    properties?: Record<string, unknown>;
+    required?: string[];
+  } {
+    const jsonSchema = zodToJsonSchema(zodSchema, {
+      $refStrategy: 'none'
+    });
+
+    // Ensure the schema has the required structure
+    if (
+      typeof jsonSchema === 'object' &&
+      jsonSchema !== null &&
+      'type' in jsonSchema
+    ) {
+      return jsonSchema as {
+        type: 'object';
+        properties?: Record<string, unknown>;
+        required?: string[];
+      };
+    }
+
+    // Fallback to basic structure
+    return {
+      type: 'object' as const,
+      properties: {},
+      required: []
+    };
+  }
+
+  /**
+   * Converts our internal result format to MCP CallToolResult
+   */
+  private convertToCallToolResult(result: any): CallToolResult {
+    // Map is_error to isError (MCP standard)
+    const callToolResult: CallToolResult = {
+      content: result.content || [],
+      _meta: {}
+    };
+
+    if (result.is_error !== undefined) {
+      callToolResult.isError = result.is_error;
+    }
+
+    return callToolResult;
   }
 
   /**
@@ -212,26 +259,14 @@ export class ToolRegistry {
   /**
    * Lists all available tools
    */
-  listTools(): Array<{
-    name: string;
-    description: string;
-    inputSchema: ToolInputSchema;
-    permissions?: string[];
-  }> {
-    return Array.from(this.tools.values()).map((tool) => {
-      const result: {
-        name: string;
-        description: string;
-        inputSchema: ToolInputSchema;
-        permissions?: string[];
-      } = {
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema
+  listTools(): Array<Tool & { permissions?: string[] }> {
+    return Array.from(this.tools.values()).map((toolInfo) => {
+      const result: Tool & { permissions?: string[] } = {
+        ...toolInfo.tool
       };
 
-      if (tool.permissions) {
-        result.permissions = tool.permissions;
+      if (toolInfo.permissions.length > 0) {
+        result.permissions = toolInfo.permissions;
       }
 
       return result;
@@ -241,8 +276,9 @@ export class ToolRegistry {
   /**
    * Gets a tool definition by name
    */
-  getTool(name: string): ToolDefinition | undefined {
-    return this.tools.get(name);
+  getTool(name: string): Tool | undefined {
+    const toolInfo = this.tools.get(name);
+    return toolInfo?.tool;
   }
 
   /**
@@ -250,23 +286,23 @@ export class ToolRegistry {
    */
   async executeTool(
     name: string,
-    input: ToolInput,
+    input: Record<string, unknown>,
     context: ToolExecutionContext = {}
-  ): Promise<ToolExecutionResult> {
+  ): Promise<CallToolResult> {
     const perfLogger = new PerformanceLogger(
       'tool-registry',
       `execute-${name}`
     );
 
     try {
-      const tool = this.tools.get(name);
-      if (!tool) {
+      const toolInfo = this.tools.get(name);
+      if (!toolInfo) {
         throw new ValidationError(`Tool not found: ${name}`);
       }
 
       // Check permissions
-      if (tool.permissions && context.permissions) {
-        this.checkPermissions(tool.permissions, context.permissions);
+      if (toolInfo.permissions.length > 0 && context.permissions) {
+        this.checkPermissions(toolInfo.permissions, context.permissions);
       }
 
       logger.info('Executing tool', {
@@ -277,7 +313,7 @@ export class ToolRegistry {
       });
 
       // Execute the tool
-      const result = await tool.execute(input);
+      const result = await toolInfo.execute(input);
 
       perfLogger.end('Tool execution completed', {
         name,
@@ -338,8 +374,8 @@ export class ToolRegistry {
     const toolNames = Array.from(this.tools.keys());
     const toolsByCategory: Record<string, string[]> = {};
 
-    for (const [name, tool] of this.tools) {
-      const category = tool.permissions?.[0]?.split(':')[1] || 'unknown';
+    for (const [name, toolInfo] of this.tools) {
+      const category = toolInfo.permissions[0]?.split(':')[1] || 'unknown';
       if (!toolsByCategory[category]) {
         toolsByCategory[category] = [];
       }
@@ -356,27 +392,18 @@ export class ToolRegistry {
   /**
    * Validates tool input against its schema
    */
-  validateToolInput(name: string, input: ToolInput): ToolInput {
-    const tool = this.tools.get(name);
-    if (!tool) {
+  validateToolInput(
+    name: string,
+    input: Record<string, unknown>
+  ): Record<string, unknown> {
+    const toolInstance = this.toolInstances.get(name);
+    if (!toolInstance) {
       throw new ValidationError(`Tool not found: ${name}`);
     }
 
     try {
-      // If it's a Zod schema, use parse method
-      if (
-        typeof tool.inputSchema === 'object' &&
-        tool.inputSchema !== null &&
-        'parse' in tool.inputSchema
-      ) {
-        const zodSchema = tool.inputSchema as {
-          parse: (input: unknown) => ToolInput;
-        };
-        return zodSchema.parse(input);
-      } else {
-        // For non-Zod schemas, just return the input as-is (basic validation)
-        return input;
-      }
+      // Use the tool instance's Zod schema for validation
+      return toolInstance.inputSchema.parse(input);
     } catch (error) {
       if (error instanceof Error && 'issues' in error) {
         // Zod validation error
