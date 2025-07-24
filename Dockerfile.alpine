@@ -19,4 +19,4 @@ RUN mkdir -p dist && echo '{"sha":"unknown","tag":"unknown","branch":"docker","v
 RUN npm run build:esm && npm run build:cjs
 
 # Command to run the server
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/index.js", "--http"]
