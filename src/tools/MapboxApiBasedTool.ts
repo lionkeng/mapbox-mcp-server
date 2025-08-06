@@ -18,7 +18,7 @@ export const OutputSchema = z.object({
       })
     ])
   ),
-  is_error: z.boolean().default(false)
+  isError: z.boolean().default(false)
 });
 
 export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
@@ -73,14 +73,14 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
       ) {
         return {
           content: [result],
-          is_error: false
+          isError: false
         };
       }
 
       // Otherwise return as text
       return {
         content: [{ type: 'text', text: JSON.stringify(result) }],
-        is_error: false
+        isError: false
       };
     } catch (error) {
       const errorMessage =
@@ -102,7 +102,7 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
               : 'Internal error has occurred.'
           }
         ],
-        is_error: true
+        isError: true
       };
     }
   }
