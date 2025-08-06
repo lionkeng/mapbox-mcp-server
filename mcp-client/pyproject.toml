@@ -1,0 +1,94 @@
+[project]
+name = "mapbox-mcp-client"
+version = "0.1.0"
+description = "Pydantic-AI agent client for Mapbox MCP Server"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic-ai[openai]>=0.0.17",
+    "httpx>=0.28.1",
+    "httpx-sse>=0.4.0",
+    "pyjwt>=2.10.1",
+    "python-dotenv>=1.0.1",
+    "logfire[pydantic,httpx]>=2.6.0",
+    "rich>=13.9.4",
+    "typer>=0.15.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.24.0",
+    "pytest-httpx>=0.35.0",
+    "ruff>=0.8.5",
+    "mypy>=1.14.0",
+    "pyright>=1.1.389",
+    "types-pyjwt>=1.7.1",
+]
+test = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.24.0",
+    "pytest-httpx>=0.35.0",
+    "pexpect>=4.9.0",  # For interactive CLI tests
+]
+
+[project.scripts]
+cli = "src.cli:app"
+mcp-client = "src.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+include = ["src", "tests", "examples"]
+exclude = ["**/__pycache__", "**/.*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "cli: CLI-specific tests",
+    "integration: Integration tests requiring MCP server",
+    "interactive: Interactive CLI tests using pexpect",
+    "e2e: End-to-end workflow tests",
+    "requires_server: Tests that require MCP server running",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-httpx>=0.35.0",
+    "ruff>=0.12.7",
+    "pyright>=1.1.389",
+    "types-pyjwt>=1.7.1",
+]
