@@ -245,7 +245,7 @@ describe('DirectionsTool', () => {
 
   describe('exclude parameter and routing profile validations', () => {
     it('accepts driving-specific exclusions with driving profiles', async () => {
-      const mockFetch = setupFetch();
+      const _mockFetch = setupFetch();
       const tool = new DirectionsTool();
 
       // Test with driving profile
@@ -310,7 +310,7 @@ describe('DirectionsTool', () => {
     });
 
     it('accepts common exclusions with all routing profiles', async () => {
-      const mockFetch = setupFetch();
+      const _mockFetch = setupFetch();
       const tool = new DirectionsTool();
 
       // Test with driving profile
@@ -357,7 +357,7 @@ describe('DirectionsTool', () => {
     });
 
     it('accepts point exclusions with driving profiles and rejects with non-driving profiles', async () => {
-      const mockFetch = setupFetch();
+      const _mockFetch = setupFetch();
       const tool = new DirectionsTool();
 
       // Test with driving profile - should work
@@ -404,7 +404,7 @@ describe('DirectionsTool', () => {
     });
 
     it('handles multiple exclusions in a single request correctly', async () => {
-      const mockFetch = setupFetch();
+      const _mockFetch = setupFetch();
       const tool = new DirectionsTool();
 
       // All valid exclusions for driving profile
@@ -653,7 +653,7 @@ describe('DirectionsTool', () => {
     });
 
     it('accepts valid date-time formats', async () => {
-      const mockFetch = setupFetch();
+      const _mockFetch = setupFetch();
       const tool = new DirectionsTool();
       const baseCoordinates = [
         [-73.989, 40.733],
@@ -1024,8 +1024,7 @@ describe('DirectionsTool', () => {
           [-73.989, 40.733],
           [-73.979, 40.743]
         ],
-        // @ts-ignore - Testing with invalid value for runtime validation
-        geometries: 'polyline'
+        geometries: 'polyline' as any
       })
     ).resolves.toMatchObject({
       is_error: true
@@ -1037,8 +1036,7 @@ describe('DirectionsTool', () => {
           [-73.989, 40.733],
           [-73.979, 40.743]
         ],
-        // @ts-ignore - Testing with invalid value for runtime validation
-        geometries: 'polyline6'
+        geometries: 'polyline6' as any
       })
     ).resolves.toMatchObject({
       is_error: true

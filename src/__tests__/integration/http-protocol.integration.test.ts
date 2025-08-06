@@ -9,7 +9,7 @@ import {
   createAuthHeader,
   TEST_HEADERS
 } from '../helpers/index.js';
-import { ErrorResponse, JsonRpcResponse } from '../helpers/index.js';
+import { ErrorResponse } from '../helpers/index.js';
 import { HttpServer } from '../../server/httpServer.js';
 
 describe('HTTP Protocol Integration Tests', () => {

@@ -33,7 +33,7 @@ describe('StaticMapImageTool', () => {
       mockImageBuffer.byteOffset + mockImageBuffer.byteLength
     );
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       arrayBuffer: jest.fn().mockResolvedValue(mockArrayBuffer)
     });
 
@@ -84,7 +84,7 @@ describe('StaticMapImageTool', () => {
   });
 
   it('handles fetch errors gracefully', async () => {
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       ok: false,
       status: 404,
       statusText: 'Not Found'

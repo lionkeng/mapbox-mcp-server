@@ -1,4 +1,4 @@
-import { Pool, request, Dispatcher } from 'undici';
+import { Pool, Dispatcher } from 'undici';
 import { getEnv } from '@/config/environment.js';
 import {
   HttpClientError,
@@ -185,7 +185,7 @@ function getPool(origin: string, config?: PoolConfig): Pool {
       );
     });
 
-    pool.on('connect', (origin, targets) => {
+    pool.on('connect', (origin, _targets) => {
       console.debug(`Pool connected to ${origin}`);
     });
 

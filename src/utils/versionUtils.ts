@@ -76,7 +76,7 @@ function tryVersionJson(name: string): VersionInfo | null {
         branch: 'unknown'
       };
     }
-  } catch (error) {
+  } catch (_error) {
     // Continue to next strategy
   }
 
@@ -108,7 +108,7 @@ function tryPackageJson(name: string): VersionInfo | null {
         };
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Continue to next strategy
   }
 
@@ -151,7 +151,7 @@ function tryEnvironmentVariables(name: string): VersionInfo | null {
         branch: branch || 'unknown'
       };
     }
-  } catch (error) {
+  } catch (_error) {
     // Continue to default
   }
 

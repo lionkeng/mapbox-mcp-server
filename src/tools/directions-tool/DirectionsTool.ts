@@ -38,7 +38,6 @@ const validateIsoDateTime = (
   try {
     // Extract date and time components
     let dateTimeComponents: string[];
-    let timezonePart = '';
 
     if (val.includes('Z')) {
       // Format 1: YYYY-MM-DDThh:mm:ssZ
@@ -51,14 +50,14 @@ const validateIsoDateTime = (
         val.lastIndexOf('-')
       );
       dateTimeComponents = val.substring(0, timezoneSeparatorIndex).split('T');
-      timezonePart = val.substring(timezoneSeparatorIndex);
+      // timezonePart = val.substring(timezoneSeparatorIndex); // Not used, kept for clarity
     } else {
       // Format 3: YYYY-MM-DDThh:mm
       dateTimeComponents = val.split('T');
     }
 
     const [datePart, timePart] = dateTimeComponents;
-    const [year, month, day] = datePart.split('-').map(Number);
+    const [, month, day] = datePart.split('-').map(Number); // year not used
 
     let hours = 0,
       minutes = 0,

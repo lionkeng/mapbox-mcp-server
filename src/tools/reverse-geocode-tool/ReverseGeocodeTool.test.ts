@@ -205,7 +205,7 @@ describe('ReverseGeocodeTool', () => {
   });
 
   it('handles fetch errors gracefully', async () => {
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       ok: false,
       status: 404,
       statusText: 'Not Found'
@@ -257,7 +257,7 @@ describe('ReverseGeocodeTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -298,7 +298,7 @@ describe('ReverseGeocodeTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -349,7 +349,7 @@ describe('ReverseGeocodeTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -380,7 +380,7 @@ describe('ReverseGeocodeTool', () => {
       features: []
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -413,7 +413,7 @@ describe('ReverseGeocodeTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -449,7 +449,7 @@ describe('ReverseGeocodeTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -484,7 +484,7 @@ describe('ReverseGeocodeTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 

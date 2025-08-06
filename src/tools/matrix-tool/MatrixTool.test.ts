@@ -703,7 +703,7 @@ describe('MatrixTool', () => {
     });
 
     it('validates empty values correctly in approaches', async () => {
-      const mockFetch = setupFetch({
+      const _mockFetch = setupFetch({
         json: () => Promise.resolve(sampleMatrixResponse)
       });
 

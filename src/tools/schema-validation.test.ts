@@ -61,7 +61,7 @@ describe('Schema Validation - No Tuples', () => {
 
   test.each(schemas)(
     '$name should not contain z.tuple() usage',
-    ({ name, schema }) => {
+    ({ schema }) => {
       const tupleIssues = detectTupleUsage(schema);
       expect(tupleIssues).toEqual([]);
     }

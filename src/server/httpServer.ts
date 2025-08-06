@@ -20,7 +20,7 @@ import type { RateLimitOptions } from '@fastify/rate-limit';
 import { getEnv } from '@/config/environment.js';
 import { HttpTransportConfig } from '@/types/transport.js';
 import { AuthenticationError } from '@/utils/errors.js';
-import { createHttpLogger, serverLogger, authLogger } from '@/utils/logger.js';
+import { serverLogger, authLogger } from '@/utils/logger.js';
 import { registerCleanup, getShutdownStatus } from '@/utils/shutdown.js';
 
 /**
@@ -158,7 +158,7 @@ export class HttpServer {
     // JWT authentication decorator
     app.decorate(
       'authenticate',
-      async (request: FastifyRequest, reply: FastifyReply) => {
+      async (request: FastifyRequest, _reply: FastifyReply) => {
         try {
           const token = await request.jwtVerify<JwtPayload>();
           (request as AuthenticatedRequest).user = token;

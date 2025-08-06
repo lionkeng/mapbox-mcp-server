@@ -28,16 +28,13 @@ describe('Tool Naming Convention', () => {
     name: tool.name
   }));
 
-  test.each(toolData)(
-    '$className should have snake_case name',
-    ({ className, name }) => {
-      expect(isSnakeCase(name)).toBe(true);
-    }
-  );
+  test.each(toolData)('$className should have snake_case name', ({ name }) => {
+    expect(isSnakeCase(name)).toBe(true);
+  });
 
   test.each(toolData)(
     '$className should have name ending with "_tool"',
-    ({ className, name }) => {
+    ({ name }) => {
       expect(endsWithTool(name)).toBe(true);
     }
   );

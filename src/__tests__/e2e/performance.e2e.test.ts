@@ -156,7 +156,7 @@ describe('Performance End-to-End Tests', () => {
       const totalTime = Date.now() - startTime;
 
       // All requests should succeed
-      responses.forEach((response, index) => {
+      responses.forEach((response) => {
         expect(response.status).toBe(200);
       });
 

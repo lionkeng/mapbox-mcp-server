@@ -3,7 +3,7 @@
  * Provides both injection-based and full server setups
  */
 
-import fastify, { FastifyInstance } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { HttpServer, HttpServerConfig } from '../../server/httpServer.js';
 import { registerMcpTransport } from '../../server/mcpHttpTransport.js';
 import { createMcpServer } from '../../server/mcpServerFactory.js';

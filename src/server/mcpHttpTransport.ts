@@ -767,7 +767,7 @@ class FastifyStreamableTransport implements Transport {
           throw error; // Let the caller decide whether to cleanup
         }
       });
-    } catch (error) {
+    } catch (_error) {
       // Cleanup session on error
       await cleanupSession(sessionId);
       return false;
@@ -904,7 +904,7 @@ function startSessionCleanup(): void {
 /**
  * Stops session cleanup timer
  */
-function stopSessionCleanup(): void {
+function _stopSessionCleanup(): void {
   if (sessionCleanupTimer) {
     clearInterval(sessionCleanupTimer);
     sessionCleanupTimer = null;

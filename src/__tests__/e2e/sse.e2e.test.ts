@@ -6,8 +6,6 @@
 import { buildTestServer, cleanupTestServer } from '../helpers/index.js';
 import { createTestToken, createAuthHeader } from '../helpers/index.js';
 import {
-  SseConnection,
-  SseConnectionPool,
   testSseConnection,
   testConcurrentSseConnections
 } from '../helpers/index.js';

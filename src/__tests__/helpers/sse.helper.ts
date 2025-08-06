@@ -4,7 +4,7 @@
  */
 
 import { createTestToken, createAuthHeader } from './auth.helper.js';
-import { TIMEOUTS, HTTP_STATUS, expectSuccess } from './constants.js';
+import { HTTP_STATUS } from './constants.js';
 
 /**
  * SSE Connection wrapper for proper resource management

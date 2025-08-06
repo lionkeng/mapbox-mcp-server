@@ -134,7 +134,7 @@ describe('PoiSearchTool', () => {
   });
 
   it('handles fetch errors gracefully', async () => {
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       ok: false,
       status: 404,
       statusText: 'Not Found'
@@ -283,7 +283,7 @@ describe('PoiSearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -322,7 +322,7 @@ describe('PoiSearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -370,7 +370,7 @@ describe('PoiSearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -395,7 +395,7 @@ describe('PoiSearchTool', () => {
       features: []
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -427,7 +427,7 @@ describe('PoiSearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -462,7 +462,7 @@ describe('PoiSearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -496,7 +496,7 @@ describe('PoiSearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 

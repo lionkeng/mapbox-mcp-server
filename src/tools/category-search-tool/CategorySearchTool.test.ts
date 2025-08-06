@@ -123,7 +123,7 @@ describe('CategorySearchTool', () => {
   });
 
   it('handles fetch errors gracefully', async () => {
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       ok: false,
       status: 404,
       statusText: 'Not Found'
@@ -224,7 +224,7 @@ describe('CategorySearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -263,7 +263,7 @@ describe('CategorySearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -311,7 +311,7 @@ describe('CategorySearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -336,7 +336,7 @@ describe('CategorySearchTool', () => {
       features: []
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -368,7 +368,7 @@ describe('CategorySearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -403,7 +403,7 @@ describe('CategorySearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
@@ -437,7 +437,7 @@ describe('CategorySearchTool', () => {
       ]
     };
 
-    const mockFetch = setupFetch({
+    const _mockFetch = setupFetch({
       json: async () => mockResponse
     });
 
