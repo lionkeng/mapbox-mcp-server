@@ -1,8 +1,12 @@
-# Mapbox MCP Server
+# Mapbox MCP Server with HTTP Transport
 
 [![npm version](https://img.shields.io/npm/v/@mapbox/mcp-server)](https://www.npmjs.com/package/@mapbox/mcp-server)
 
 Node.js server implementing Model Context Protocol (MCP) for Mapbox APIs.
+
+## Acknowledgment
+
+This repository is a fork of the original [mapbox/mcp-server](https://github.com/mapbox/mcp-server), extending it with HTTP transport capabilities using the Fastify web framework. The original implementation provides stdio-based MCP transport, while this fork adds support for streamable HTTP transport with Server-Sent Events (SSE), making it suitable for web-based integrations and remote access scenarios.
 
 ## Unlock Geospatial Intelligence for Your AI Applications
 
@@ -15,7 +19,21 @@ The Mapbox MCP Server transforms any AI agent or application into a geospatially
 - **Isochrone generation** to visualize areas reachable within specific time or distance constraints
 - **Static map images** to create visual representations of locations, routes, and geographic data
 
-Whether you're building an AI travel assistant, logistics optimizer, location-based recommender, or any application that needs to understand "where", the Mapbox MCP Server provides the spatial intelligence to make it possible. You can also enable it on popular clients like Claude Desktop and VS Code. See below for details
+Whether you're building an AI travel assistant (really? 😉), logistics optimizer, location-based recommender, or any application that needs to understand "where", the Mapbox MCP Server provides the spatial intelligence to make it possible. You can also enable it on popular clients like Claude Desktop and VS Code. See below for details.
+
+## HTTP Transport Extension
+
+This fork extends the original Mapbox MCP server with HTTP transport capabilities, providing:
+
+- **Streamable HTTP Transport**: Built on the Fastify web framework for high-performance HTTP handling
+- **Server-Sent Events (SSE)**: Real-time streaming of responses for long-running operations
+- **Authentication**: JWT-based authentication for secure API access
+- **Rate Limiting**: Built-in rate limiting to prevent abuse (100 requests per 15 minutes per IP)
+- **Health Monitoring**: Health check endpoint for monitoring server status
+- **CORS Support**: Configurable CORS headers for browser-based clients
+- **Graceful Shutdown**: Proper cleanup of resources on server termination
+
+The HTTP transport maintains full compatibility with all Mapbox geospatial tools while enabling web-based and remote client integrations.
 
 ![Mapbox MCP Server Demo](./assets/mapbox_mcp_server.gif)
 
@@ -30,6 +48,111 @@ To get a Mapbox access token:
 3. Create a new token or use the default public token
 
 For more information about Mapbox access tokens, see the [Mapbox documentation on access tokens](https://docs.mapbox.com/help/dive-deeper/access-tokens/).
+
+## HTTP Server Usage
+
+### Environment Variables
+
+When running the HTTP server, configure these environment variables:
+
+**Required:**
+
+- `MAPBOX_ACCESS_TOKEN`: Your Mapbox API access token
+- `JWT_SECRET`: Secret key for JWT token generation (minimum 32 characters)
+
+**Optional:**
+
+- `PORT`: HTTP server port (default: 8080)
+- `HOST`: Server host address (default: 0.0.0.0)
+- `VERBOSE_ERRORS`: Enable detailed error messages (default: false)
+- `NODE_ENV`: Environment mode (development/production/test)
+
+### Starting the HTTP Server
+
+```bash
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Start the HTTP server (easiest method)
+MAPBOX_ACCESS_TOKEN="your_token_here" \
+JWT_SECRET="your-secret-key-at-least-32-characters-long" \
+npm run dev
+
+# Alternative: Start with custom port
+MAPBOX_ACCESS_TOKEN="your_token_here" \
+JWT_SECRET="your-secret-key-at-least-32-characters-long" \
+PORT=3000 \
+node dist/index.js --http
+```
+
+### Testing the HTTP Server
+
+Once the server is running, you can test it using curl:
+
+```bash
+# Get authentication token
+curl -X POST http://localhost:8080/auth \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# List available tools (replace YOUR_JWT_TOKEN with the token from /auth)
+curl -X POST http://localhost:8080/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "id": 1
+  }'
+
+# Health check
+curl http://localhost:8080/health
+```
+
+## Testing with mcp-client
+
+This repository includes a Python-based MCP client for testing the HTTP transport:
+
+### Setup
+
+```bash
+# Navigate to the mcp-client directory
+cd mcp-client
+
+# Install dependencies with uv
+uv sync
+```
+
+### Running Tests
+
+```bash
+# Set environment variables
+export MAPBOX_ACCESS_TOKEN="your_token_here"
+export JWT_SECRET="your-secret-key-at-least-32-characters-long"
+
+# Run integration tests
+uv run pytest tests/integration/test_mcp_connection.py -v
+
+# Run the interactive CLI client
+uv run cli
+```
+
+### Example Client Usage
+
+The mcp-client provides both an interactive CLI and programmatic access:
+
+#### Interactive CLI Mode
+
+```bash
+# Start interactive mode
+uv run cli
+
+# Or run a single query
+uv run cli "Find coffee shops near Times Square"
+```
 
 ## Integration Guides
 
@@ -248,7 +371,7 @@ When you use the MCP server tools, the following data is sent directly from your
 
 ### Maintenance Commitment
 
-This MCP server is officially maintained by Mapbox, Inc. We provide:
+The original MCP server is officially maintained by Mapbox, Inc. with:
 
 - Regular updates for new Mapbox API features
 - Bug fixes and security updates
@@ -257,4 +380,5 @@ This MCP server is officially maintained by Mapbox, Inc. We provide:
 
 ---
 
+All licensing for this fork will adhere to the original licensing.
 [BSD 3-Clause License](LICENSE.md)
