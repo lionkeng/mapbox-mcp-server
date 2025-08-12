@@ -3,7 +3,7 @@
  * Provides a unified interface for registering and executing tools
  */
 import { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
+import { z, ZodTypeAny } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MapboxApiBasedTool } from '../tools/MapboxApiBasedTool.js';
@@ -60,7 +60,7 @@ export interface ToolExecutionContext {
  */
 export class ToolRegistry {
   private tools = new Map<string, InternalToolInfo>();
-  private toolInstances = new Map<string, MapboxApiBasedTool<unknown>>();
+  private toolInstances = new Map<string, MapboxApiBasedTool<ZodTypeAny>>();
   private toolExecutors = new Map<string, ToolExecuteFunction>();
 
   /**
@@ -134,9 +134,9 @@ export class ToolRegistry {
   /**
    * Registers a tool instance
    */
-  private registerToolInstance(toolInstance: MapboxApiBasedTool<unknown>): void {
+  private registerToolInstance(toolInstance: MapboxApiBasedTool<ZodTypeAny>): void {
     // Convert Zod schema to JSON Schema for MCP compliance
-    const inputSchema = this.zodToJsonSchema(toolInstance.inputSchema);
+    const inputSchema = this.zodToJsonSchema(toolInstance.inputSchema as ZodTypeAny);
 
     // Create MCP-compliant Tool object
     const tool: Tool = {
@@ -201,7 +201,7 @@ export class ToolRegistry {
   /**
    * Converts our internal result format to MCP CallToolResult
    */
-  private convertToCallToolResult(result: unknown): CallToolResult {
+  private convertToCallToolResult(result: any): CallToolResult {
     // Map is_error to isError (MCP standard)
     const callToolResult: CallToolResult = {
       content: result.content || [],
@@ -403,7 +403,7 @@ export class ToolRegistry {
 
     try {
       // Use the tool instance's Zod schema for validation
-      return toolInstance.inputSchema.parse(input);
+      return (toolInstance.inputSchema as ZodTypeAny).parse(input);
     } catch (error) {
       if (error instanceof Error && 'issues' in error) {
         // Zod validation error

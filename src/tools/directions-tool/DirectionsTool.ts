@@ -308,10 +308,29 @@ export class DirectionsTool extends MapboxApiBasedTool<
   constructor() {
     super({ inputSchema: DirectionsInputSchema });
   }
+
   protected async execute(
     input: z.infer<typeof DirectionsInputSchema>,
     accessToken: string
   ): Promise<any> {
+    const url = await this.buildDirectionsUrl(input, accessToken);
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(
+        `Request failed with status ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    return cleanResponseData(input, data);
+  }
+
+
+  private async buildDirectionsUrl(
+    input: z.infer<typeof DirectionsInputSchema>,
+    accessToken: string
+  ): Promise<string> {
     // Validate exclude parameter against the actual routing_profile
     // This is needed because some exclusions are only driving specific
     if (input.exclude) {
@@ -411,7 +430,7 @@ export class DirectionsTool extends MapboxApiBasedTool<
     if (input.geometries !== 'none') {
       queryParams.append('geometries', input.geometries);
     }
-    queryParams.append('alternatives', input.alternatives.toString());
+    queryParams.append('alternatives', (input.alternatives ?? false).toString());
 
     // Add annotations parameter
     if (input.routing_profile === 'driving-traffic') {
@@ -463,16 +482,7 @@ export class DirectionsTool extends MapboxApiBasedTool<
       queryString += `&exclude=${excludeEncoded}`;
     }
 
-    const url = `${MapboxApiBasedTool.MAPBOX_API_ENDPOINT}directions/v5/mapbox/${input.routing_profile}/${encodedCoords}?${queryString}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(
-        `Request failed with status ${response.status}: ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-    return cleanResponseData(input, data);
+    return `${MapboxApiBasedTool.MAPBOX_API_ENDPOINT}directions/v5/mapbox/${input.routing_profile}/${encodedCoords}?${queryString}`;
   }
+
 }

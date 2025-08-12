@@ -180,4 +180,5 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
       }
     }
   }
+
 }
