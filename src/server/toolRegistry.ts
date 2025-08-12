@@ -60,7 +60,7 @@ export interface ToolExecutionContext {
  */
 export class ToolRegistry {
   private tools = new Map<string, InternalToolInfo>();
-  private toolInstances = new Map<string, MapboxApiBasedTool<any>>();
+  private toolInstances = new Map<string, MapboxApiBasedTool<unknown>>();
   private toolExecutors = new Map<string, ToolExecuteFunction>();
 
   /**
@@ -134,7 +134,7 @@ export class ToolRegistry {
   /**
    * Registers a tool instance
    */
-  private registerToolInstance(toolInstance: MapboxApiBasedTool<any>): void {
+  private registerToolInstance(toolInstance: MapboxApiBasedTool<unknown>): void {
     // Convert Zod schema to JSON Schema for MCP compliance
     const inputSchema = this.zodToJsonSchema(toolInstance.inputSchema);
 
@@ -201,7 +201,7 @@ export class ToolRegistry {
   /**
    * Converts our internal result format to MCP CallToolResult
    */
-  private convertToCallToolResult(result: any): CallToolResult {
+  private convertToCallToolResult(result: unknown): CallToolResult {
     // Map is_error to isError (MCP standard)
     const callToolResult: CallToolResult = {
       content: result.content || [],

@@ -3,6 +3,8 @@
  * Supports both stdio and HTTP transports
  */
 
+import { FastifyReply } from 'fastify';
+
 /**
  * Transport types supported by the MCP server
  */
@@ -87,7 +89,7 @@ export interface McpSession {
  */
 export interface SSEConnection {
   sessionId: string;
-  reply: any; // FastifyReply with SSE support
+  reply: FastifyReply;
   createdAt: Date;
   lastActivity: Date;
 }
