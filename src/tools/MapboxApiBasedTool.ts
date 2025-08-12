@@ -3,7 +3,11 @@ import {
   RegisteredTool
 } from '@modelcontextprotocol/sdk/server/mcp';
 import { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import { z, ZodTypeAny } from 'zod';
+import {
+  ServerRequest,
+  ServerNotification
+} from '@modelcontextprotocol/sdk/types.js';
+import { z, ZodTypeAny, ZodRawShape } from 'zod';
 
 export const OutputSchema = z.object({
   content: z.array(
@@ -59,7 +63,7 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
    */
   async run(
     rawInput: unknown,
-    extra?: RequestHandlerExtra<any, any>
+    extra?: RequestHandlerExtra<ServerRequest, ServerNotification>
   ): Promise<z.infer<typeof OutputSchema>> {
     try {
       // First check if token is provided via authentication context
@@ -86,10 +90,15 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
       if (
         result &&
         typeof result === 'object' &&
+        'type' in result &&
         (result.type === 'image' || result.type === 'text')
       ) {
         return {
-          content: [result],
+          content: [
+            result as
+              | { type: 'image'; data: string; mimeType: string }
+              | { type: 'text'; text: string }
+          ],
           isError: false
         };
       }
@@ -126,7 +135,11 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
   protected abstract execute(
     _input: z.infer<InputSchema>,
     accessToken: string
-  ): Promise<any>;
+  ): Promise<
+    | { type: 'image'; data: string; mimeType: string }
+    | { type: 'text'; text: string }
+    | unknown
+  >;
 
   /**
    * Installs the tool to the given MCP server.
@@ -136,7 +149,7 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
     return server.tool(
       this.name,
       this.description,
-      (this.inputSchema as unknown as z.ZodObject<any>).shape,
+      (this.inputSchema as unknown as z.ZodObject<ZodRawShape>).shape,
       (args, extra) => this.run(args, extra)
     );
   }
@@ -147,7 +160,7 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
    */
   protected log(
     level: 'debug' | 'info' | 'warning' | 'error',
-    data: any
+    data: unknown
   ): void {
     if (this.server) {
       try {
@@ -155,7 +168,7 @@ export abstract class MapboxApiBasedTool<InputSchema extends ZodTypeAny> {
         // In HTTP mode, the transport doesn't support bidirectional communication
         const hasConnectedTransport =
           this.server.server &&
-          typeof (this.server.server as any).send === 'function';
+          typeof (this.server.server as { send?: unknown }).send === 'function';
 
         if (hasConnectedTransport) {
           this.server.server.sendLoggingMessage({ level, data });
